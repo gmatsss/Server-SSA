@@ -77,7 +77,7 @@ const retune = require("./routes/retune");
 app.use("/retune", retune);
 
 // Step 11: Port configuration
-const port = process.env.PORT || 8001;
+const port = process.env.PORT || 22;
 
 // Step 12: Starting the server
 app.listen(port, () =>
