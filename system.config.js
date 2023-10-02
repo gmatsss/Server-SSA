@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "my-app",
+      name: "app",
       script: "./app.js",
       env: {
         MONGO_URI:
