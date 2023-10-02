@@ -41,7 +41,7 @@ exports.register_user = async (req, res) => {
       },
     });
 
-    const verificationLink = `http://localhost:8001/user/verify-email?token=${token}`; //change in production
+    const verificationLink = `http://52.90.191.222:8001/user/verify-email?token=${token}`; //change in production
 
     let mailOptions = {
       from: "_mainaccount@customadesign.info",
@@ -73,7 +73,9 @@ exports.verify_user = async (req, res) => {
 
   if (!user) {
     // Optionally, you can redirect to an error page
-    return res.redirect("http://localhost:3000/error?message=Invalid token."); //change in production
+    return res.redirect(
+      "http://ssa.customadesign.info/error?message=Invalid token."
+    ); //change in production
   }
 
   // Mark the email as verified and clear the verification token
@@ -82,7 +84,7 @@ exports.verify_user = async (req, res) => {
   await user.save();
 
   // Redirect to the Signin page
-  res.redirect("http://localhost:3000/Signin"); //change in production
+  res.redirect("http://ssa.customadesign.info/Signin"); //change in production
 };
 
 exports.login_user = async (req, res, next) => {
