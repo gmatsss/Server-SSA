@@ -44,10 +44,33 @@ exports.register_user = async (req, res) => {
     const verificationLink = `http://52.90.191.222:8001/user/verify-email?token=${token}`; //change in production
 
     let mailOptions = {
-      from: "_mainaccount@customadesign.info",
-      to: email,
-      subject: "Email Verification",
-      text: `Please verify your email by clicking on the link: ${verificationLink}`,
+      from: '"Super Smarter Agent" <_mainaccount@customadesign.info>', // sender address with a name
+      to: email, // list of receivers
+      subject: "Welcome to Super Smarter Agent - Please Verify Your Email", // Subject line
+      text: `Dear User,
+    
+    Thank you for registering with Super Smarter Agent. To complete your registration and enjoy our services, please verify your email address by clicking the link below:
+    
+    ${verificationLink}
+    
+    If the link above does not work, please copy and paste the URL into your web browser.
+    
+    Thank you for choosing Super Smarter Agent!
+    
+    Best regards,
+    Super Smarter Agent
+    `, // plain text body
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2>Welcome to Super Smarter Agent</h2>
+          <p>Dear User,</p>
+          <p>Thank you for registering with Super Smarter Agent. To complete your registration and enjoy our services, please verify your email address by clicking the link below:</p>
+          <p><a href="${verificationLink}" style="color: #4CAF50; text-decoration: none;">Verify Email Address</a></p>
+          <p>If the link above does not work, please copy and paste the URL into your web browser.</p>
+          <p>Thank you for choosing Super Smarter Agent!</p>
+          <p>Best regards,<br>Super Smarter Agent</p>
+        </div>
+      `, // html body
     };
 
     await transporter.sendMail(mailOptions);
@@ -103,11 +126,13 @@ exports.login_user = async (req, res, next) => {
           .json({ message: "Email not verified check your email to verify" });
       }
 
-      req.login(user, {}, (err) => {
-        if (err) return next(err);
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
         return res
           .status(200)
-          .json({ user: req.user, message: "Login Success" });
+          .json({ message: "Login successful", user: req.user });
       });
     })(req, res, next);
   } catch (error) {

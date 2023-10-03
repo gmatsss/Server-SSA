@@ -42,12 +42,12 @@ app.use(cors(corsOptions));
 // Step 5: Session configuration
 app.use(
   session({
-    secret: "secretcode",
+    secret: "your_strong_secret",
     resave: true,
     saveUninitialized: false,
     cookie: {
-      sameSite: "none",
-      secure: false, // Set secure to false since we are not using HTTPS
+      sameSite: "lax", // or 'strict'
+      secure: false,
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
