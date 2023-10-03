@@ -6,11 +6,10 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require("express-session");
-const https = require("https"); // Import HTTPS module
-const fs = require("fs"); // Import File System module
 
 require("dotenv").config();
 
+// Step 2: Creating Express app
 const app = express();
 
 // Step 3: Middleware configuration for logging and parsing requests
@@ -77,19 +76,10 @@ app.use("/User", User);
 const retune = require("./routes/retune");
 app.use("/retune", retune);
 
-// Step 9: HTTPS server options
-const serverOptions = {
-  key: fs.readFileSync("server.key"),
-  cert: fs.readFileSync("server.crt"),
-};
-
-// Step 10: Creating HTTPS server
-const server = https.createServer(serverOptions, app);
-
 // Step 11: Port configuration
 const port = process.env.PORT || 8001;
 
 // Step 12: Starting the server
-server.listen(port, () =>
-  console.log(`Server is running at https://localhost:${port}`)
+app.listen(port, () =>
+  console.log(`Server is running at http://localhost:${port}`)
 );
