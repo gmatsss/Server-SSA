@@ -77,6 +77,8 @@ const User = require("./routes/User");
 app.use("/User", User);
 const retune = require("./routes/retune");
 app.use("/retune", retune);
+const moonclerk = require("./routes/moonclerk");
+app.use("/moonclerk", moonclerk);
 
 // Step 11: Port configuration
 const port = process.env.PORT || 8001;
