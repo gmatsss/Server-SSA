@@ -42,14 +42,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Step 5: Session configuration
-
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: "your_strong_secret",
     resave: true,
     saveUninitialized: false,
     cookie: {
-      domain: "https://node.customadesign.info",
       sameSite: "lax",
       secure: true,
       maxAge: 24 * 60 * 60 * 1000,
