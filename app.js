@@ -49,8 +49,9 @@ app.use(
     resave: true,
     saveUninitialized: false,
     cookie: {
-      sameSite: "none", // 'lax' is more lenient than 'strict' but still provides some level of CSRF protection
-      secure: true, // Set to false since you're not using HTTPS
+      domain: "https://node.customadesign.info",
+      sameSite: "none",
+      secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
