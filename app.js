@@ -1,4 +1,3 @@
-// Step 1: Importing required modules
 const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
@@ -6,18 +5,16 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 
 require("dotenv").config();
 
-// Step 2: Creating Express app
 const app = express();
 
-// Step 3: Middleware configuration for logging and parsing requests
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Step 4: CORS configuration
 const allowedOrigins = [
   "http://localhost:8000",
   "http://localhost:3000",
@@ -41,28 +38,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Step 5: Session configuration
-app.set("trust proxy", 1);
-app.use(
-  session({
-    secret: "your_strong_secret",
-    resave: true,
-    saveUninitialized: false,
-    cookie: {
-      sameSite: "none",
-      secure: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
-
-// Step 6: Passport initialization
-app.use(passport.initialize());
-app.use(passport.session());
-const initializePassport = require("./middleware/passport");
-initializePassport(passport);
-
-// Step 7: Database connection
+// Database connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -71,7 +47,29 @@ mongoose
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log("Error connecting to DB"));
 
-// Step 8: Importing and using routes
+// Session configuration
+app.set("trust proxy", 1);
+app.use(
+  session({
+    secret: "your_strong_secret",
+    resave: true,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    cookie: {
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production" ? true : false,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+const initializePassport = require("./middleware/passport");
+initializePassport(passport);
+
+// Importing and using routes
 const testRoutes = require("./routes/test");
 app.use("/", testRoutes);
 const User = require("./routes/User");
@@ -81,10 +79,8 @@ app.use("/retune", retune);
 const moonclerk = require("./routes/moonclerk");
 app.use("/moonclerk", moonclerk);
 
-// Step 11: Port configuration
 const port = process.env.PORT || 8001;
 
-// Step 12: Starting the server
 app.listen(port, () =>
   console.log(`Server is running at http://localhost:${port}`)
 );
