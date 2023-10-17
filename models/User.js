@@ -4,9 +4,8 @@ var User = new mongoose.Schema({
   fullname: String,
   email: String,
   password: String,
+  phone: Number,
   role: String,
-  emailVerified: Boolean,
-  verificationToken: String,
 });
 
 module.exports = mongoose.model("User", User);
