@@ -1,7 +1,9 @@
 const Onboarding = require("../models/botSchema"); // Assuming the model is in the models directory
 const { MongoClient, GridFSBucket } = require("mongodb");
+const User = require("../models/User");
+const sendEmail = require("../middleware/sendmail");
 
-exports.createOnboarding = async (req, res) => {
+exports.createOnboarding = async (req, res, next) => {
   try {
     let { agents } = req.body;
     const {
@@ -87,10 +89,17 @@ exports.createOnboarding = async (req, res) => {
 
     await newOnboarding.save();
 
+    const user = await User.findById(userId);
+    const recipientEmail = user.email;
+
+    req.recipientEmail = recipientEmail;
+
     res.status(200).json({
       data: newOnboarding,
       message: "Onboarding data saved successfully.",
     });
+
+    sendEmail(req, res, next);
   } catch (error) {
     console.error(error);
     res.status(500).json({
