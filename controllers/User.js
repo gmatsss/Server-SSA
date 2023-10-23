@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const passport = require("passport");
 
 const nodemailer = require("nodemailer");
-
 const crypto = require("crypto");
 
 // exports.register_user = async (req, res) => {
@@ -109,10 +108,18 @@ exports.register_user = async (req, res) => {
       role: role,
     });
 
-    res.status(200).json({
-      data: user,
-      message: "Registration complete.",
-    });
+    if (role === "user") {
+      // If the role is 'user', send back the user's ID for onboarding
+      res.status(200).json({
+        userId: user._id, // Send back the user's ID
+        message: "User registration complete. Proceed with onboarding.",
+      });
+    } else {
+      // If the role is 'admin' or any other, just send a success message
+      res.status(200).json({
+        message: "Registration complete.",
+      });
+    }
   } catch (error) {
     console.log(error);
     res

@@ -1,37 +1,48 @@
 const mongoose = require("mongoose");
 
-const botSchema = new mongoose.Schema({
+const agentSchema = new mongoose.Schema({
   agentType: {
     type: String,
-    required: true,
   },
-  serviceIndustry: {
-    type: String,
-    required: true,
-  },
-  uploadedFiles: [
-    {
-      type: String, // Assuming you'll store file paths or URLs
-    },
-  ],
   toneOfVoice: {
     type: String,
-    required: true,
   },
-  additionalGuidelines: {
+  serviceIndustry: {
     type: String,
   },
   otherServiceIndustry: {
     type: String,
   },
+});
+
+const onboardingSchema = new mongoose.Schema({
+  numberOfAgents: {
+    type: Number,
+  },
+  agents: [agentSchema], // Array of agent details
+  additionalGuidelines: {
+    type: String,
+  },
   botChannel: [
     {
       type: String,
-      required: true,
     },
   ],
+  uploadedFiles: [
+    {
+      type: String, // Assuming you'll store file paths or URLs
+    },
+  ],
+  verificationCode: {
+    type: String,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
 });
 
-const Bot = mongoose.model("Bot", botSchema);
+const Onboarding = mongoose.model("Onboarding", onboardingSchema);
 
-module.exports = Bot;
+module.exports = Onboarding;

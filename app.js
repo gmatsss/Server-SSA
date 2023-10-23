@@ -2,18 +2,18 @@ const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
+const fileUpload = require("express-fileupload");
 
 require("dotenv").config();
 
 const app = express();
-
 app.use(morgan("dev"));
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(fileUpload());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 const allowedOrigins = [
   "http://localhost:8000",
@@ -78,6 +78,8 @@ const retune = require("./routes/retune");
 app.use("/retune", retune);
 const moonclerk = require("./routes/moonclerk");
 app.use("/moonclerk", moonclerk);
+const bot = require("./routes/Botroutes");
+app.use("/bot", bot);
 
 const port = process.env.PORT || 8001;
 
