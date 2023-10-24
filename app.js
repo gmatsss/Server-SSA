@@ -80,6 +80,8 @@ const moonclerk = require("./routes/moonclerk");
 app.use("/moonclerk", moonclerk);
 const bot = require("./routes/Botroutes");
 app.use("/bot", bot);
+const Admin = require("./routes/Admin");
+app.use("/Admin", Admin);
 
 const port = process.env.PORT || 8001;
 
