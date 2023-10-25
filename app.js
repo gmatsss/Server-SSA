@@ -19,7 +19,7 @@ const allowedOrigins = [
   "http://localhost:8000",
   "http://localhost:3000",
   "http://localhost:3001",
-  "https://dashboard.supersmartagents.com/",
+  "https://dashboard.supersmartagents.com",
   "http://ssa.customadesign.info",
   "http://34.199.84.82:3000",
   "https://supersmartagents.com",
