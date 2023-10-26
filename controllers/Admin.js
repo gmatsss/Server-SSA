@@ -84,7 +84,7 @@ exports.sendEmailtoclient = async (req, res, next) => {
 
     // Construct the email message
     const subject = "Bot Configuration Complete";
-    const text = `Greetings from SSA! We're happy to inform you that your bot is already configured. To test and run it, please login at https://supersmartagents.com/Signin. Your password is your first name: ${fname}.`;
+    const text = `Greetings from SSA! We're happy to inform you that your bot is already configured. To test and run it, please login at https://dashboard.supersmartagents.com/. Your password is your first name: ${fname}.`;
     const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e4;">
     <h2 style="color: #333; border-bottom: 1px solid #e4e4e4; padding-bottom: 10px;">Exciting News: Your Bot is Ready!</h2>
@@ -92,7 +92,7 @@ exports.sendEmailtoclient = async (req, res, next) => {
         Hello from the SSA Team! 🎉 We're thrilled to share that your personalized bot has been meticulously configured and is now ready to roll!
     </p>
     <p style="font-size: 16px; line-height: 1.5; color: #555;">
-        Dive right in and experience the magic. Simply <a href="https://supersmartagents.com/Signin" style="color: #007BFF; text-decoration: none;">click here to login</a> and get started.
+        Dive right in and experience the magic. Simply <a href="https://dashboard.supersmartagents.com/" style="color: #007BFF; text-decoration: none;">click here to login</a> and get started.
     </p>
     
     <p style="font-size: 16px; line-height: 1.5; color: #555;">
