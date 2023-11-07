@@ -18,8 +18,7 @@ exports.createOnboarding = async (req, res, next) => {
       agents = JSON.parse(agents);
     }
 
-    console.log(req.body);
-    console.log(req.files);
+    agents = agents.map((agent) => ({ ...agent, botStatus: "In Progress" }));
 
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).send("No files were uploaded.");

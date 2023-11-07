@@ -13,13 +13,21 @@ const agentSchema = new mongoose.Schema({
   otherServiceIndustry: {
     type: String,
   },
+  SSAapikey: {
+    type: String,
+  },
+  botStatus: {
+    type: String,
+    enum: ["Active", "In Progress", "Cancelled"],
+    default: "In Progress", // Set default value to "In Progress"
+  },
 });
 
 const onboardingSchema = new mongoose.Schema({
   numberOfAgents: {
     type: Number,
   },
-  agents: [agentSchema], // Array of agent details
+  agents: [agentSchema],
   additionalGuidelines: {
     type: String,
   },
@@ -30,16 +38,44 @@ const onboardingSchema = new mongoose.Schema({
   ],
   uploadedFiles: [
     {
-      type: String, // Assuming you'll store file paths or URLs
+      type: String,
     },
   ],
   verificationCode: {
     type: String,
   },
+  openAPIKey: {
+    OpenAI: {
+      type: String,
+      default: null,
+    },
+    OpenRouter: {
+      type: String,
+      default: null,
+    },
+    Claude: {
+      type: String,
+      default: null,
+    },
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+  },
+  domainName: {
+    type: String,
+  },
+  dnsRecords: {
+    aRecordType: String,
+    aRecordName: String,
+    aRecordValue: String,
+    txtRecordType: String,
+    txtRecordName: String,
+    txtRecordValue: String,
+    cnameRecordType: String,
+    cnameRecordName: String,
+    cnameRecordValue: String,
   },
 });
 
