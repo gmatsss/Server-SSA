@@ -6,6 +6,7 @@ const { ObjectId } = require("mongodb");
 const { default: mongoose } = require("mongoose");
 const axios = require("axios");
 const qs = require("qs");
+const sendEmail = require("../middleware/mailer");
 
 exports.downloadFile = async (req, res) => {
   try {
@@ -131,6 +132,7 @@ exports.update_api_key = async (req, res) => {
   try {
     const userId = req.user._id;
     const { openAI, claude, openRouter } = req.body; // Destructure all API keys from the request body
+    const updatedKeys = [];
 
     const user = await User.findById(userId);
     if (!user) {
@@ -145,17 +147,46 @@ exports.update_api_key = async (req, res) => {
     }
 
     // Update the API keys
-    if (openAI !== undefined) onboardingDetails.openAPIKey.OpenAI = openAI;
-    if (claude !== undefined) onboardingDetails.openAPIKey.Claude = claude;
-    if (openRouter !== undefined)
+    if (openAI) {
+      onboardingDetails.openAPIKey.OpenAI = openAI;
+      updatedKeys.push("OpenAI");
+    }
+    if (claude) {
+      onboardingDetails.openAPIKey.Claude = claude;
+      updatedKeys.push("Claude");
+    }
+    if (openRouter) {
       onboardingDetails.openAPIKey.OpenRouter = openRouter;
+      updatedKeys.push("OpenRouter");
+    }
 
     await onboardingDetails.save();
 
-    res.json({
-      message: "API keys updated successfully",
-      onboardingDetails,
-    });
+    // If any keys were updated, send an email notification
+    if (updatedKeys.length > 0) {
+      const emailContent = {
+        to: "pat@supersmartagents.com, gabriel.maturan@linkage.ph",
+        subject: "API Key Update Notification for SuperSmartAgents",
+        html: `
+        <div style="font-family: 'Arial', sans-serif; color: #333;">
+          <h1 style="color: #4F81BD;">API Key Update Alert</h1>
+          <p>API keys have been updated for the account associated with the email: <strong>${
+            user.email
+          }</strong></p>
+          <p>The following API keys have been updated:</p>
+          <ul>
+            ${updatedKeys.map((key) => `<li>${key}</li>`).join("")}
+          </ul>
+          <p>Please visit the <a href="https://dashboard.supersmartagents.com" target="_blank" style="color: #005A9C; text-decoration: none;">admin dashboard</a> to review the updates.</p>
+          <p>Best Regards,</p>
+          <p><strong>The SuperSmartAgents Support Team</strong></p>
+        </div>
+      `,
+      };
+
+      await sendEmail(emailContent);
+      res.json({ message: "API keys updated successfully", onboardingDetails });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -166,39 +197,50 @@ exports.update_api_key = async (req, res) => {
 
 exports.update_domain_name = async (req, res) => {
   try {
-    // Assuming you have a middleware that sets req.user to the logged-in user
     const userId = req.user._id;
-    const { domainName } = req.body; // Expecting 'domainName' in the request body
+    const { domainName } = req.body;
 
-    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Fetch the onboarding details for the logged-in user
     const onboardingDetails = await Onboarding.findOne({ user: userId });
     if (!onboardingDetails) {
-      return res
-        .status(404)
-        .json({ message: "No onboarding details found for the user" });
+      return res.status(404).json({ message: "Onboarding details not found" });
     }
 
-    // Update the domain name
     if (domainName) {
       onboardingDetails.domainName = domainName;
+      await onboardingDetails.save();
+
+      const emailContent = {
+        to: "pat@supersmartagents.com, gabriel.maturan@linkage.ph",
+        subject: "Domain Name Update Notification",
+        html: `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5;">
+          <h1 style="color: #4F81BD;">Domain Name Update Alert</h1>
+          <p>This email is to inform you that the user with the email: <strong>${user.email}</strong> has updated their domain name to: <strong>${domainName}</strong>.</p>
+          <p>Kindly proceed to the admin dashboard to confirm the new domain settings and perform any necessary updates:</p>
+          <p style="margin-bottom: 2em;">
+            <a href="https://dashboard.supersmartagents.com" target="_blank" style="color: blue padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Visit Admin Dashboard</a>
+          </p>
+          <p>Thank you</p>
+          <br>
+          <p>Warm regards,</p>
+          <p><strong>The SuperSmartAgents Support Team</strong></p>
+        </div>
+      `,
+      };
+
+      await sendEmail(emailContent);
+      res.json({
+        message: "Domain name updated successfully",
+        onboardingDetails,
+      });
     } else {
-      return res.status(400).json({ message: "Invalid domain name" });
+      res.status(400).json({ message: "Invalid domain name" });
     }
-
-    // Save the updated onboarding details
-    await onboardingDetails.save();
-
-    // Return a success response
-    res.json({
-      message: "Domain name updated successfully",
-      onboardingDetails,
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -209,9 +251,8 @@ exports.update_domain_name = async (req, res) => {
 
 exports.post_dns_records = async (req, res) => {
   try {
-    const { user, dnsRecords } = req.body;
+    const { user, dnsRecords, email } = req.body;
 
-    console.log(user);
     // Validate user
     if (!user) {
       return res.status(400).json({ message: "User ID is required" });
@@ -239,7 +280,21 @@ exports.post_dns_records = async (req, res) => {
     // Save the updated onboarding details
     await onboardingDetails.save();
 
-    // Return a success response
+    const userNotificationContent = {
+      to: email,
+      subject: "DNS Settings Update",
+      html: `
+        <h1>DNS Settings Updated</h1>
+        <p>Hello,</p>
+        <p>Your DNS settings have been successfully updated. To ensure that your domain functions correctly, please follow the DNS configuration steps provided in your dashboard.</p>
+        <p><a href="https://dashboard.supersmartagents.com" target="_blank">Click here to go to your DNS settings dashboard</a></p>
+        <p>If you need any assistance, our support team is here to help.</p>
+        <p>Best Regards,</p>
+        <p>SSA Support Team</p>
+      `,
+    };
+
+    await sendEmail(userNotificationContent);
     res.json({
       message: "DNS records updated successfully",
       onboardingDetails,
@@ -261,7 +316,7 @@ exports.sendEmailtoclient = async (req, res, next) => {
       port: 465,
       secure: true, // true for 465, false for other ports
       auth: {
-        user: "billing@supersmartagents.com",
+        user: "support@supersmartagents.com",
         pass: "4Sgr3;;I83SmrJ", // Replace with the email account's password
       },
     });
@@ -294,12 +349,11 @@ exports.sendEmailtoclient = async (req, res, next) => {
         The Super Smart Agents Team
     </p>
 </div>
-
 `;
 
     // Send the email
     await transporter.sendMail({
-      from: '"Super Smart Agents" <billing@supersmartagents.com>',
+      from: '"Super Smart Agents" <support@supersmartagents.com>',
       to: email,
       subject: subject,
       text: text,
