@@ -13,6 +13,7 @@ const {
   update_api_key,
   update_domain_name,
   post_dns_records,
+  updateAgentDetails,
 } = require("../controllers/Admin");
 
 router.get("/get_clients", get_clients);
@@ -24,5 +25,6 @@ router.post("/createemail", createEmailAccount);
 router.post("/updateapikey", update_api_key);
 router.post("/updatedomainname", update_domain_name);
 router.post("/postdnsrecords", post_dns_records);
+router.post("/updateAgentDetails", updateAgentDetails);
 
 module.exports = router;

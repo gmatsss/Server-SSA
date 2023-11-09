@@ -6,12 +6,15 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
 exports.register_user = async (req, res) => {
+  console.log(req.body);
   try {
     const { name, email, password, phone, role } = req.body;
-    const oldUser = await User.findOne({ email });
+    const oldUser = await User.findOne({ email: email.toLowerCase() }); // Ensure case-insensitive check
 
     if (oldUser) {
-      return res.status(409).json({ err: "User already Exist" });
+      return res
+        .status(409)
+        .json({ data: null, error: "User already exists." });
     }
 
     // Encrypt user password
@@ -20,29 +23,29 @@ exports.register_user = async (req, res) => {
     // Create user in our database
     const user = await User.create({
       fullname: name,
-      email: email.toLowerCase(),
+      email: email.toLowerCase(), // Save email in lowercase
       phone: phone,
       password: encryptedPassword,
       role: role,
     });
 
-    if (role === "user") {
-      // If the role is 'user', send back the user's ID for onboarding
-      res.status(200).json({
-        userId: user._id, // Send back the user's ID
-        message: "User registration complete. Proceed with onboarding.",
-      });
-    } else {
-      // If the role is 'admin' or any other, just send a success message
-      res.status(200).json({
-        message: "Registration complete.",
-      });
-    }
+    // Prepare the response data
+    const responseData = {
+      userId: user._id,
+      message:
+        role === "user"
+          ? "User registration complete. Proceed with onboarding."
+          : "Registration complete.",
+    };
+
+    // Send a successful response
+    res.status(200).json({ data: responseData, error: null });
   } catch (error) {
     console.log(error);
-    res
-      .status(500)
-      .json({ err: "An error occurred while registering the user." });
+    res.status(500).json({
+      data: null,
+      error: "An error occurred while registering the user.",
+    });
   }
 };
 

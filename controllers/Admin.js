@@ -454,3 +454,41 @@ exports.createEmailAccount = async (req, res) => {
       .json({ message: "Error creating email account", error: error.message });
   }
 };
+
+exports.updateAgentDetails = async (req, res) => {
+  const { userId, agentId, agentDetails } = req.body;
+
+  try {
+    // Find the onboarding document by user ID
+    const onboarding = await Onboarding.findOne({ user: userId });
+
+    if (!onboarding) {
+      return res
+        .status(404)
+        .json({ message: "Onboarding document not found." });
+    }
+
+    // Find the specific agent within the onboarding document
+    const agentIndex = onboarding.agents.findIndex(
+      (agent) => agent._id.toString() === agentId
+    );
+
+    if (agentIndex === -1) {
+      return res.status(404).json({ message: "Agent not found." });
+    }
+
+    // Update the agent details
+    Object.keys(agentDetails).forEach((key) => {
+      onboarding.agents[agentIndex][key] = agentDetails[key];
+    });
+
+    // Save the updated onboarding document
+    await onboarding.save();
+
+    res
+      .status(200)
+      .json({ message: "Agent updated successfully.", onboarding });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};

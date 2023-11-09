@@ -5,7 +5,9 @@ const sendEmail = require("../middleware/sendmail");
 
 exports.createOnboarding = async (req, res, next) => {
   try {
-    let { agents } = req.body;
+    let { agents, customerID, paymentPlanID } = req.body;
+    console.log(customerID);
+
     const {
       userId,
       numberOfAgents,
@@ -16,6 +18,19 @@ exports.createOnboarding = async (req, res, next) => {
 
     if (typeof agents === "string") {
       agents = JSON.parse(agents);
+    }
+
+    // Create an array for payment plans. You can add date and status later when you have them.
+    let paymentPlans = [];
+    if (customerID) {
+      paymentPlans.push({
+        customer_id: customerID,
+      });
+    }
+    if (paymentPlanID) {
+      paymentPlans.push({
+        customer_id: paymentPlanID,
+      });
     }
 
     agents = agents.map((agent) => ({ ...agent, botStatus: "In Progress" }));
@@ -83,7 +98,8 @@ exports.createOnboarding = async (req, res, next) => {
       botChannel,
       uploadedFiles,
       verificationCode,
-      user: userId, // Save the user's ID
+      user: userId,
+      paymentplan: paymentPlans,
     });
 
     await newOnboarding.save();

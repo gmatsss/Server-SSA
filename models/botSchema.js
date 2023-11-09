@@ -16,10 +16,26 @@ const agentSchema = new mongoose.Schema({
   SSAapikey: {
     type: String,
   },
+  SSAApi: {
+    type: String,
+  },
   botStatus: {
     type: String,
     enum: ["Active", "In Progress", "Cancelled"],
     default: "In Progress", // Set default value to "In Progress"
+  },
+});
+
+const paymentPlanSchema = new mongoose.Schema({
+  customer_id: {
+    type: String,
+  },
+  datePayment: {
+    type: String,
+  },
+  status: {
+    type: String,
+    enum: ["Active", "Paused", "Cancelled"],
   },
 });
 
@@ -77,6 +93,8 @@ const onboardingSchema = new mongoose.Schema({
     cnameRecordName: String,
     cnameRecordValue: String,
   },
+
+  paymentplan: [paymentPlanSchema], // Array of payment plans
 });
 
 const Onboarding = mongoose.model("Onboarding", onboardingSchema);
