@@ -30,13 +30,6 @@ const paymentPlanSchema = new mongoose.Schema({
   customer_id: {
     type: String,
   },
-  datePayment: {
-    type: String,
-  },
-  status: {
-    type: String,
-    enum: ["Active", "Paused", "Cancelled"],
-  },
 });
 
 const onboardingSchema = new mongoose.Schema({

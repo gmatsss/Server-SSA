@@ -492,3 +492,39 @@ exports.updateAgentDetails = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+exports.get_user_payment_plans = async (req, res) => {
+  try {
+    // Assuming you have a middleware that sets req.user to the logged-in user
+    const userId = req.user._id;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch the onboarding details for the logged-in user
+    const onboardingDetails = await Onboarding.findOne({ user: userId });
+
+    if (!onboardingDetails) {
+      return res
+        .status(404)
+        .json({ message: "No onboarding details found for the user" });
+    }
+
+    // Extract the payment plan IDs from the onboarding details
+    const paymentPlanIds = onboardingDetails.paymentplan.map(
+      (plan) => plan.customer_id
+    );
+
+    // Return the payment plan IDs
+    res.json({ paymentPlanIds });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message:
+        "An error occurred while fetching the payment plans for the logged-in user",
+    });
+  }
+};

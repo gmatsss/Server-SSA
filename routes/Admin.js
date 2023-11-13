@@ -14,11 +14,13 @@ const {
   update_domain_name,
   post_dns_records,
   updateAgentDetails,
+  get_user_payment_plans,
 } = require("../controllers/Admin");
 
 router.get("/get_clients", get_clients);
 router.get("/downloadFile/:fileId", downloadFile);
 router.get("/get_bots", get_logged_in_user_bots);
+router.get("/getuserpaymentplans", get_user_payment_plans);
 router.post("/sendEmailtoclient", sendEmailtoclient);
 router.post("/sendticket", sendTicket);
 router.post("/createemail", createEmailAccount);
