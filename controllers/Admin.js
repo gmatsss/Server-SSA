@@ -3,10 +3,10 @@ const Onboarding = require("../models/botSchema");
 const nodemailer = require("nodemailer");
 const { MongoClient, GridFSBucket } = require("mongodb");
 const { ObjectId } = require("mongodb");
-const { default: mongoose } = require("mongoose");
 const axios = require("axios");
 const qs = require("qs");
 const sendEmail = require("../middleware/mailer");
+const cron = require("node-cron");
 
 exports.downloadFile = async (req, res) => {
   try {
@@ -602,3 +602,73 @@ exports.get_user_payment_plans = async (req, res) => {
     });
   }
 };
+
+// Function to fetch MoonClerk data
+async function fetchMoonClerkData() {
+  try {
+    const response = await axios.get(
+      "http://localhost:8001/moonclerk/api/customers",
+      {
+        headers: {
+          Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
+          Accept: "application/vnd.moonclerk+json;version=1",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching MoonClerk data:", error);
+    return null;
+  }
+}
+
+// Function to update bot status in the database
+async function updateBotStatus() {
+  console.log("Starting updateBotStatus task");
+  const moonClerkData = await fetchMoonClerkData();
+  if (!moonClerkData) {
+    console.log("No MoonClerk data found, exiting task");
+    return;
+  }
+
+  const onboardings = await Onboarding.find().populate("agents");
+  onboardings.forEach(async (onboarding) => {
+    let isModified = false;
+    onboarding.agents.forEach((outerAgent) => {
+      outerAgent.agents.forEach((innerAgent) => {
+        if (innerAgent.botStatus !== "In Progress") {
+          const matchedCustomer = findCustomerByVerificationCode(
+            moonClerkData,
+            outerAgent.verificationCodebotplan
+          );
+
+          if (matchedCustomer && matchedCustomer.subscription) {
+            console.log(
+              `Updating botStatus for agent ${innerAgent._id} to ${matchedCustomer.subscription.status}`
+            );
+            innerAgent.botStatus = matchedCustomer.subscription.status;
+            isModified = true;
+          }
+        }
+      });
+    });
+
+    if (isModified) {
+      onboarding.markModified("agents");
+      await onboarding.save();
+      console.log(`Onboarding details updated for user ${onboarding.user}`);
+    }
+  });
+  console.log("Completed updateBotStatus task");
+}
+
+// cron.schedule("*/1 * * * *", () => {
+//   console.log("Running scheduled task to update bot status");
+//   updateBotStatus();
+// });
+
+//Schedule the task to run every hour (adjust as needed)
+cron.schedule("0 */12 * * *", () => {
+  console.log("Running scheduled task to update bot status");
+  updateBotStatus();
+});
