@@ -5,32 +5,44 @@ const sendEmail = require("../middleware/sendmail");
 
 exports.createOnboarding = async (req, res, next) => {
   try {
-    let { agents, customerID, paymentPlanID } = req.body;
-    console.log(customerID);
-
-    const {
-      userId,
-      numberOfAgents,
-      additionalGuidelines,
+    let {
+      agents,
+      customerID,
+      paymentPlanID,
       botChannel,
-      verificationCode,
+      verificationCodebotplan,
+      verifchannelcode,
     } = req.body;
 
+    const { userId, numberOfAgents, additionalGuidelines } = req.body;
+
+    // Process agents
+    let processedAgents = [];
     if (typeof agents === "string") {
       agents = JSON.parse(agents);
+      processedAgents.push({
+        verificationCodebotplan,
+        agents,
+      });
     }
 
-    // Create an array for payment plans. You can add date and status later when you have them.
-    let paymentPlans = [];
-    if (customerID) {
-      paymentPlans.push({
-        customer_id: customerID,
+    // Process channels
+    let processedChannels = [];
+    if (typeof botChannel === "string") {
+      botChannel = JSON.parse(botChannel);
+      processedChannels.push({
+        verifchannelcode,
+        channels: botChannel.map((channelName) => ({ channelName })),
       });
     }
+
+    // Process payment plans
+    let paymentPlans = [];
+    if (customerID) {
+      paymentPlans.push({ customer_id: customerID });
+    }
     if (paymentPlanID) {
-      paymentPlans.push({
-        customer_id: paymentPlanID,
-      });
+      paymentPlans.push({ customer_id: paymentPlanID });
     }
 
     agents = agents.map((agent) => ({ ...agent, botStatus: "In Progress" }));
@@ -93,11 +105,10 @@ exports.createOnboarding = async (req, res, next) => {
 
     const newOnboarding = new Onboarding({
       numberOfAgents,
-      agents,
+      agents: processedAgents,
       additionalGuidelines,
-      botChannel,
-      uploadedFiles,
-      verificationCode,
+      channels: processedChannels,
+      uploadedFiles, // Assuming this is handled in the file upload logic
       user: userId,
       paymentplan: paymentPlans,
     });

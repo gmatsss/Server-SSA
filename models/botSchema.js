@@ -1,80 +1,53 @@
 const mongoose = require("mongoose");
 
-const agentSchema = new mongoose.Schema({
-  agentType: {
-    type: String,
-  },
-  toneOfVoice: {
-    type: String,
-  },
-  serviceIndustry: {
-    type: String,
-  },
-  otherServiceIndustry: {
-    type: String,
-  },
-  SSAapikey: {
-    type: String,
-  },
-  SSAApi: {
-    type: String,
-  },
+const agentDetailsSchema = new mongoose.Schema({
+  agentType: String,
+  toneOfVoice: String,
+  serviceIndustry: String,
+  otherServiceIndustry: String,
+  SSAapikey: String,
+  SSAApi: String,
   botStatus: {
     type: String,
-    enum: ["Active", "In Progress", "Cancelled"],
-    default: "In Progress", // Set default value to "In Progress"
+    default: "In Progress",
   },
+});
+
+const agentSchema = new mongoose.Schema({
+  verificationCodebotplan: String,
+  agents: [agentDetailsSchema],
+});
+
+const channelDetailsSchema = new mongoose.Schema({
+  channelName: String,
+});
+
+const channelSchema = new mongoose.Schema({
+  verifchannelcode: String,
+  channels: [channelDetailsSchema],
 });
 
 const paymentPlanSchema = new mongoose.Schema({
-  customer_id: {
-    type: String,
-  },
+  customer_id: String,
 });
 
 const onboardingSchema = new mongoose.Schema({
-  numberOfAgents: {
-    type: Number,
-  },
+  numberOfAgents: Number,
   agents: [agentSchema],
-  additionalGuidelines: {
-    type: String,
-  },
-  botChannel: [
-    {
-      type: String,
-    },
-  ],
-  uploadedFiles: [
-    {
-      type: String,
-    },
-  ],
-  verificationCode: {
-    type: String,
-  },
+  additionalGuidelines: String,
+  channels: [channelSchema],
+  uploadedFiles: [String],
   openAPIKey: {
-    OpenAI: {
-      type: String,
-      default: null,
-    },
-    OpenRouter: {
-      type: String,
-      default: null,
-    },
-    Claude: {
-      type: String,
-      default: null,
-    },
+    OpenAI: String,
+    OpenRouter: String,
+    Claude: String,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  domainName: {
-    type: String,
-  },
+  domainName: String,
   dnsRecords: {
     aRecordType: String,
     aRecordName: String,
@@ -86,8 +59,7 @@ const onboardingSchema = new mongoose.Schema({
     cnameRecordName: String,
     cnameRecordValue: String,
   },
-
-  paymentplan: [paymentPlanSchema], // Array of payment plans
+  paymentplan: [paymentPlanSchema],
 });
 
 const Onboarding = mongoose.model("Onboarding", onboardingSchema);

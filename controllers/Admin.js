@@ -97,28 +97,87 @@ exports.get_clients = async (req, res) => {
 
 exports.get_logged_in_user_bots = async (req, res) => {
   try {
-    // Assuming you have a middleware that sets req.user to the logged-in user
     const userId = req.user._id;
 
-    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Fetch the onboarding details for the logged-in user and populate the 'agents' field
     const onboardingDetails = await Onboarding.findOne({
       user: userId,
     }).populate("agents");
-
     if (!onboardingDetails) {
       return res
         .status(404)
         .json({ message: "No onboarding details found for the user" });
     }
 
-    // Return the onboarding details for the logged-in user
-    res.json(onboardingDetails);
+    console.log("Onboarding Details:", onboardingDetails);
+
+    const moonClerkResponse = await axios.get(
+      "http://localhost:8001/moonclerk/api/customers",
+      {
+        headers: {
+          Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
+          Accept: "application/vnd.moonclerk+json;version=1",
+        },
+      }
+    );
+
+    console.log("MoonClerk Response Data:", moonClerkResponse.data);
+
+    let isModified = false;
+    onboardingDetails.agents.forEach((outerAgent) => {
+      outerAgent.agents.forEach((innerAgent) => {
+        const verificationCode = outerAgent.verificationCodebotplan;
+        console.log("Agent Verification Code:", verificationCode);
+        const matchedCustomer = findCustomerByVerificationCode(
+          moonClerkResponse.data,
+          verificationCode
+        );
+
+        if (matchedCustomer && matchedCustomer.subscription) {
+          // Update only if the current status is not 'In Progress'
+          if (innerAgent.botStatus !== "In Progress") {
+            console.log(
+              "Updating botStatus for agent. Previous status:",
+              innerAgent.botStatus
+            );
+            innerAgent.botStatus = matchedCustomer.subscription.status;
+            console.log("New botStatus:", innerAgent.botStatus);
+            isModified = true;
+          } else {
+            console.log(
+              "Skipping botStatus update as current status is 'In Progress'."
+            );
+          }
+        }
+      });
+    });
+
+    if (isModified) {
+      onboardingDetails.markModified("agents");
+      await onboardingDetails.save();
+      console.log("Updated Onboarding Details:", onboardingDetails);
+    }
+
+    const combinedData = {
+      onboardingDetails,
+      customers: onboardingDetails.agents
+        .map((outerAgent) =>
+          outerAgent.agents.map((innerAgent) =>
+            findCustomerByVerificationCode(
+              moonClerkResponse.data,
+              outerAgent.verificationCodebotplan
+            )
+          )
+        )
+        .flat(),
+    };
+
+    console.log("Combined Data:", combinedData);
+    res.json(combinedData);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -127,6 +186,15 @@ exports.get_logged_in_user_bots = async (req, res) => {
     });
   }
 };
+
+function findCustomerByVerificationCode(moonClerkData, verificationCode) {
+  return moonClerkData.customers.find((customer) => {
+    const customerVerificationCode =
+      customer.custom_fields.verification_code.response;
+    console.log("Customer Verification Code:", customerVerificationCode);
+    return customerVerificationCode === verificationCode;
+  });
+}
 
 exports.update_api_key = async (req, res) => {
   try {
@@ -469,18 +537,24 @@ exports.updateAgentDetails = async (req, res) => {
     }
 
     // Find the specific agent within the onboarding document
-    const agentIndex = onboarding.agents.findIndex(
-      (agent) => agent._id.toString() === agentId
-    );
+    let agentFound = false;
+    for (let agentGroup of onboarding.agents) {
+      const agentIndex = agentGroup.agents.findIndex(
+        (agent) => agent._id.toString() === agentId
+      );
 
-    if (agentIndex === -1) {
-      return res.status(404).json({ message: "Agent not found." });
+      if (agentIndex !== -1) {
+        Object.keys(agentDetails).forEach((key) => {
+          agentGroup.agents[agentIndex][key] = agentDetails[key];
+        });
+        agentFound = true;
+        break;
+      }
     }
 
-    // Update the agent details
-    Object.keys(agentDetails).forEach((key) => {
-      onboarding.agents[agentIndex][key] = agentDetails[key];
-    });
+    if (!agentFound) {
+      return res.status(404).json({ message: "Agent not found." });
+    }
 
     // Save the updated onboarding document
     await onboarding.save();
