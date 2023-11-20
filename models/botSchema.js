@@ -31,12 +31,17 @@ const paymentPlanSchema = new mongoose.Schema({
   customer_id: String,
 });
 
+// New Guidelines Schema
+const guidelinesSchema = new mongoose.Schema({
+  additionalGuidelines: String,
+  uploadedFiles: [String],
+});
+
 const onboardingSchema = new mongoose.Schema({
   numberOfAgents: Number,
   agents: [agentSchema],
-  additionalGuidelines: String,
+  guidelines: [guidelinesSchema], // Embed the GuidelinesSchema here
   channels: [channelSchema],
-  uploadedFiles: [String],
   openAPIKey: {
     OpenAI: String,
     OpenRouter: String,

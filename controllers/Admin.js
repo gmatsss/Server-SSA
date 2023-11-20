@@ -113,8 +113,6 @@ exports.get_logged_in_user_bots = async (req, res) => {
         .json({ message: "No onboarding details found for the user" });
     }
 
-    console.log("Onboarding Details:", onboardingDetails);
-
     const moonClerkResponse = await axios.get(
       "http://localhost:8001/moonclerk/api/customers",
       {
@@ -125,13 +123,11 @@ exports.get_logged_in_user_bots = async (req, res) => {
       }
     );
 
-    console.log("MoonClerk Response Data:", moonClerkResponse.data);
-
     let isModified = false;
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
         const verificationCode = outerAgent.verificationCodebotplan;
-        console.log("Agent Verification Code:", verificationCode);
+
         const matchedCustomer = findCustomerByVerificationCode(
           moonClerkResponse.data,
           verificationCode
@@ -140,12 +136,8 @@ exports.get_logged_in_user_bots = async (req, res) => {
         if (matchedCustomer && matchedCustomer.subscription) {
           // Update only if the current status is not 'In Progress'
           if (innerAgent.botStatus !== "In Progress") {
-            console.log(
-              "Updating botStatus for agent. Previous status:",
-              innerAgent.botStatus
-            );
             innerAgent.botStatus = matchedCustomer.subscription.status;
-            console.log("New botStatus:", innerAgent.botStatus);
+
             isModified = true;
           } else {
             console.log(
@@ -159,7 +151,6 @@ exports.get_logged_in_user_bots = async (req, res) => {
     if (isModified) {
       onboardingDetails.markModified("agents");
       await onboardingDetails.save();
-      console.log("Updated Onboarding Details:", onboardingDetails);
     }
 
     const combinedData = {
@@ -176,7 +167,6 @@ exports.get_logged_in_user_bots = async (req, res) => {
         .flat(),
     };
 
-    console.log("Combined Data:", combinedData);
     res.json(combinedData);
   } catch (error) {
     console.error(error);
@@ -191,7 +181,7 @@ function findCustomerByVerificationCode(moonClerkData, verificationCode) {
   return moonClerkData.customers.find((customer) => {
     const customerVerificationCode =
       customer.custom_fields.verification_code.response;
-    console.log("Customer Verification Code:", customerVerificationCode);
+
     return customerVerificationCode === verificationCode;
   });
 }
@@ -624,7 +614,6 @@ async function fetchMoonClerkData() {
 
 // Function to update bot status in the database
 async function updateBotStatus() {
-  console.log("Starting updateBotStatus task");
   const moonClerkData = await fetchMoonClerkData();
   if (!moonClerkData) {
     console.log("No MoonClerk data found, exiting task");
@@ -659,7 +648,6 @@ async function updateBotStatus() {
       console.log(`Onboarding details updated for user ${onboarding.user}`);
     }
   });
-  console.log("Completed updateBotStatus task");
 }
 
 // cron.schedule("*/1 * * * *", () => {
