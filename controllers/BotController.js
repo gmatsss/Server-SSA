@@ -36,7 +36,6 @@ exports.createOnboarding = async (req, res, next) => {
       });
     }
 
-    // Process payment plans
     let paymentPlans = [];
     if (customerID) {
       paymentPlans.push({ customer_id: customerID });
@@ -53,13 +52,11 @@ exports.createOnboarding = async (req, res, next) => {
 
     let uploadedFiles = [];
 
+    // Handling multiple file uploads
     let files = [];
-
     if (req.files["uploadedFiles[0]"]) {
       files.push(req.files["uploadedFiles[0]"]);
-    } else {
-      // Handle the case where multiple files might be uploaded
-      let index = 0;
+      let index = 1;
       while (req.files[`uploadedFiles[${index}]`]) {
         files.push(req.files[`uploadedFiles[${index}]`]);
         index++;
@@ -71,12 +68,9 @@ exports.createOnboarding = async (req, res, next) => {
       useUnifiedTopology: true,
     });
     const db = conn.db();
+    const bucket = new GridFSBucket(db, { bucketName: "botfiles" });
 
-    // Create a new instance of GridFSBucket
-    const bucket = new GridFSBucket(db, {
-      bucketName: "botfiles",
-    });
-
+    // Processing and uploading each file
     for (const file of files) {
       // Check for existing file and delete it
       const existingFile = await db.collection("botfiles.files").findOne({
@@ -138,6 +132,7 @@ exports.createOnboarding = async (req, res, next) => {
 
 exports.additionalbot = async (req, res, next) => {
   try {
+    console.log(req.body);
     console.log(req.files);
     const userId = req.user._id; // Assuming you have the user's ID
 

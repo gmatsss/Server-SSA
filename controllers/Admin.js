@@ -104,9 +104,10 @@ exports.get_logged_in_user_bots = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const onboardingDetails = await Onboarding.findOne({
-      user: userId,
-    }).populate("agents");
+    const onboardingDetails = await Onboarding.findOne({ user: userId })
+      .populate("agents")
+      .populate("paymentplan");
+
     if (!onboardingDetails) {
       return res
         .status(404)
@@ -124,25 +125,21 @@ exports.get_logged_in_user_bots = async (req, res) => {
     );
 
     let isModified = false;
+
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
         const verificationCode = outerAgent.verificationCodebotplan;
 
+        // Check for monthly subscription status
         const matchedCustomer = findCustomerByVerificationCode(
           moonClerkResponse.data,
           verificationCode
         );
 
         if (matchedCustomer && matchedCustomer.subscription) {
-          // Update only if the current status is not 'In Progress'
           if (innerAgent.botStatus !== "In Progress") {
             innerAgent.botStatus = matchedCustomer.subscription.status;
-
             isModified = true;
-          } else {
-            console.log(
-              "Skipping botStatus update as current status is 'In Progress'."
-            );
           }
         }
       });
@@ -181,7 +178,22 @@ function findCustomerByVerificationCode(moonClerkData, verificationCode) {
   return moonClerkData.customers.find((customer) => {
     const customerVerificationCode =
       customer.custom_fields.verification_code.response;
+    return customerVerificationCode === verificationCode;
+  });
+}
 
+function findCustomerByVerificationCode(moonClerkData, verificationCode) {
+  return moonClerkData.customers.find((customer) => {
+    const customerVerificationCode =
+      customer.custom_fields.verification_code.response;
+    return customerVerificationCode === verificationCode;
+  });
+}
+
+function findCustomerByVerificationCode(moonClerkData, verificationCode) {
+  return moonClerkData.customers.find((customer) => {
+    const customerVerificationCode =
+      customer.custom_fields.verification_code.response;
     return customerVerificationCode === verificationCode;
   });
 }
@@ -559,30 +571,25 @@ exports.updateAgentDetails = async (req, res) => {
 
 exports.get_user_payment_plans = async (req, res) => {
   try {
-    // Assuming you have a middleware that sets req.user to the logged-in user
     const userId = req.user._id;
 
-    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Fetch the onboarding details for the logged-in user
     const onboardingDetails = await Onboarding.findOne({ user: userId });
-
     if (!onboardingDetails) {
       return res
         .status(404)
         .json({ message: "No onboarding details found for the user" });
     }
 
-    // Extract the payment plan IDs from the onboarding details
-    const paymentPlanIds = onboardingDetails.paymentplan.map(
-      (plan) => plan.customer_id
-    );
+    // Extract the payment plan IDs, filtering out any null or undefined customer_id
+    const paymentPlanIds = onboardingDetails.paymentplan
+      .filter((plan) => plan.customer_id) // Add this line to filter out plans without customer_id
+      .map((plan) => plan.customer_id);
 
-    // Return the payment plan IDs
     res.json({ paymentPlanIds });
   } catch (error) {
     console.error(error);
