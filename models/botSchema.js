@@ -29,6 +29,16 @@ const channelSchema = new mongoose.Schema({
 
 const paymentPlanSchema = new mongoose.Schema({
   customer_id: String,
+  yearlyplan: {
+    yearlyplanID: String,
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
+    },
+    status: String,
+  },
 });
 
 // New Guidelines Schema
