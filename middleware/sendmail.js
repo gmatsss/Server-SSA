@@ -2,6 +2,8 @@ const nodemailer = require("nodemailer");
 
 const sendEmail = async (req, res, next) => {
   try {
+    const recipientEmail = req.recipientEmail;
+    const firstName = req.firstName; // Use this as the password
     // Create a transporter object using the default SMTP transport
     const transporter = nodemailer.createTransport({
       host: "mail.supersmartagents.com",
@@ -30,7 +32,12 @@ const sendEmail = async (req, res, next) => {
           </p>
           <p style="font-size: 16px; line-height: 1.5; color: #555;">
           In the meantime, we invite you to delve deeper into the world of Super Smart Agents. Our <a href="https://wiki.supersmartagents.com/" style="color: #007BFF; text-decoration: none;">wiki</a> is a treasure trove of information, insights, and best practices tailored for our valued clients like you. Dive in and empower yourself with knowledge!
-        </p>        
+        </p> 
+        <p style="font-size: 16px; line-height: 1.5; color: #555;">
+            If you wish to access your dashboard, please visit <a href="https://dashboard.supersmartagents.com/" style="color: #007BFF; text-decoration: none;">Super Smart Agents Dashboard</a>. Your login credentials are as follows:
+            <br>Email: ${recipientEmail}
+            <br>Password: ${firstName} (Your first name)
+          </p>       
           <p style="font-size: 16px; line-height: 1.5; color: #555;">
             Warm regards,<br>
             The Super Smart Agents Team

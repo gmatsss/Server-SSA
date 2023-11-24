@@ -128,6 +128,11 @@ exports.get_logged_in_user_bots = async (req, res) => {
 
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
+        // Check if lifetimeAccess is true, skip updating status
+        if (innerAgent.lifetimeAccess) {
+          return;
+        }
+
         const verificationCode = outerAgent.verificationCodebotplan;
 
         // Check for monthly subscription status
@@ -173,22 +178,6 @@ exports.get_logged_in_user_bots = async (req, res) => {
     });
   }
 };
-
-function findCustomerByVerificationCode(moonClerkData, verificationCode) {
-  return moonClerkData.customers.find((customer) => {
-    const customerVerificationCode =
-      customer.custom_fields.verification_code.response;
-    return customerVerificationCode === verificationCode;
-  });
-}
-
-function findCustomerByVerificationCode(moonClerkData, verificationCode) {
-  return moonClerkData.customers.find((customer) => {
-    const customerVerificationCode =
-      customer.custom_fields.verification_code.response;
-    return customerVerificationCode === verificationCode;
-  });
-}
 
 function findCustomerByVerificationCode(moonClerkData, verificationCode) {
   return moonClerkData.customers.find((customer) => {
@@ -632,6 +621,11 @@ async function updateBotStatus() {
     let isModified = false;
     onboarding.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
+        // Skip updating status if lifetimeAccess is true
+        if (innerAgent.lifetimeAccess) {
+          return;
+        }
+
         if (innerAgent.botStatus !== "In Progress") {
           const matchedCustomer = findCustomerByVerificationCode(
             moonClerkData,
@@ -656,11 +650,6 @@ async function updateBotStatus() {
     }
   });
 }
-
-// cron.schedule("*/1 * * * *", () => {
-//   console.log("Running scheduled task to update bot status");
-//   updateBotStatus();
-// });
 
 //Schedule the task to run every hour (adjust as needed)
 cron.schedule("0 */12 * * *", () => {

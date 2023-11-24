@@ -1,7 +1,9 @@
+const mongoose = require("mongoose");
 const Onboarding = require("../models/botSchema"); // Assuming the model is in the models directory
 const { MongoClient, GridFSBucket } = require("mongodb");
 const User = require("../models/User");
 const sendEmail = require("../middleware/sendmail");
+const Announcement = require("../models/announcement");
 
 exports.createOnboarding = async (req, res, next) => {
   try {
@@ -16,14 +18,31 @@ exports.createOnboarding = async (req, res, next) => {
 
     const { userId, numberOfAgents, additionalGuidelines } = req.body;
 
-    // Process agents
     let processedAgents = [];
+    const offerStartDate = new Date();
+    const offerValidityDays = 30;
+    const offerEndDate = new Date(
+      offerStartDate.getTime() + offerValidityDays * 24 * 60 * 60 * 1000
+    );
+
     if (typeof agents === "string") {
       agents = JSON.parse(agents);
+
+      // Add the offer details to each agent
+      const updatedAgents = agents.map((agent) => ({
+        ...agent,
+        lifetimeAccess: false,
+        offerValidityDays,
+        offerStartDate,
+        offerEndDate,
+      }));
+
       processedAgents.push({
         verificationCodebotplan,
-        agents,
+        agents: updatedAgents,
       });
+    } else {
+      console.log("Agents is not a string:", agents);
     }
 
     // Process channels
@@ -43,8 +62,6 @@ exports.createOnboarding = async (req, res, next) => {
     if (paymentPlanID) {
       paymentPlans.push({ customer_id: paymentPlanID });
     }
-
-    agents = agents.map((agent) => ({ ...agent, botStatus: "In Progress" }));
 
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).send("No files were uploaded.");
@@ -113,7 +130,12 @@ exports.createOnboarding = async (req, res, next) => {
 
     const user = await User.findById(userId);
     const recipientEmail = user.email;
+    const recipientName = user.fullname;
 
+    const names = recipientName.split(" ");
+    const firstName = names[0]; // Assuming the first name is the first part of the full name
+
+    req.firstName = firstName;
     req.recipientEmail = recipientEmail;
 
     res.status(200).json({
@@ -132,8 +154,6 @@ exports.createOnboarding = async (req, res, next) => {
 
 exports.additionalbot = async (req, res, next) => {
   try {
-    console.log(req.body);
-    console.log(req.files);
     const userId = req.user._id; // Assuming you have the user's ID
 
     // Extract and process agent data from the request
@@ -305,5 +325,185 @@ exports.additionalbot = async (req, res, next) => {
     res.status(500).json({
       err: "An error occurred while updating the onboarding data.",
     });
+  }
+};
+
+exports.updateLifetimeAccess = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const agentSubscriptions = req.body.agentSubscriptions;
+
+    // Log for debugging
+    console.log("Received agentSubscriptions:", agentSubscriptions);
+
+    // Check if agentSubscriptions is an array and has elements
+    if (!Array.isArray(agentSubscriptions) || agentSubscriptions.length === 0) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
+    // Process each agentSubscription
+    const updates = agentSubscriptions.map(({ agentId }) => {
+      console.log(`Updating lifetime access for agentId: ${agentId}`);
+      return Onboarding.findOneAndUpdate(
+        { user: userId, "agents.agents._id": agentId },
+        {
+          $set: {
+            "agents.$[outer].agents.$[inner].lifetimeAccess": true,
+            "agents.$[outer].agents.$[inner].offerValidityDays": null,
+            "agents.$[outer].agents.$[inner].offerStartDate": null,
+            "agents.$[outer].agents.$[inner].offerEndDate": null,
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [
+            { "outer.agents._id": agentId },
+            { "inner._id": agentId },
+          ],
+        }
+      );
+    });
+
+    // Execute all update operations
+    const results = await Promise.all(updates);
+
+    // Check if updates were successful
+    if (results.some((result) => result !== null)) {
+      // Fetch user details
+      const user = await User.findById(userId);
+
+      // Fetch parent bot details
+      const parentBot = await getParentBotDetails(
+        agentSubscriptions.map(({ agentId }) => agentId)
+      );
+
+      // Construct a description with subscription types
+      const subscriptionDescriptions = agentSubscriptions
+        .map((sub) => `${sub.agentId} (${sub.subscriptionType})`)
+        .join(", ");
+
+      let newTodo;
+
+      if (parentBot && parentBot.verificationCodebotplan) {
+        // Create a new todo for cases where parent bot's verification code is available
+        newTodo = {
+          title: "Lifetime Access Granted",
+          description: `
+          Step 1: Confirm Lifetime Access Granted
+          - Granted to: ${user.fullname} (${user.email})
+        
+          Step 2: Locate Subscription in MoonClerk
+          - Search for user by name or email to find the subscription.
+          - Subscription types to check: ${subscriptionDescriptions}
+        
+          Step 3: Pause Recurring Charges
+          - Once located, pause any ongoing charges to prevent future billing.
+          - Verification code to match: ${parentBot.verificationCodebotplan}
+        
+          Step 4: Verification
+          - Ensure the correct plan is paused both verification are the same.
+        `,
+          completed: false,
+        };
+      } else {
+        // Create a different new todo for cases where parent bot's verification code is not available
+        newTodo = {
+          title: "Lifetime Access for Bot",
+          description: `${user.fullname} (${user.email}). Subscription types: ${subscriptionDescriptions} have bought lifetime access for a bot.`,
+          completed: false,
+        };
+      }
+
+      // Post the new todo to all admins
+      await postAnnouncementToAdmins(newTodo);
+
+      res.status(200).json({
+        success: true, // Add this line
+        message: "Lifetime access updated and admin notified successfully.",
+      });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No matching agents or onboarding records found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      err: "An error occurred while updating the agents' lifetime access.",
+    });
+  }
+};
+
+const postAnnouncementToAdmins = async (newTodo) => {
+  try {
+    // Find all users with the role of 'Admin'
+    const adminUsers = await User.find({ role: "Admin" });
+
+    // Update the Announcement collection for each admin user
+    const updatePromises = adminUsers.map((adminUser) => {
+      return Announcement.findOneAndUpdate(
+        { user: adminUser._id },
+        { $push: { todos: newTodo } },
+        { new: true, upsert: true }
+      );
+    });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises);
+
+    console.log("Announcements updated for all admins.");
+  } catch (error) {
+    console.error("Error updating announcements for admins:", error);
+  }
+};
+
+const getParentBotDetails = async (agentIds) => {
+  try {
+    const agentIdsAsObjectIds = agentIds.map(
+      (agentId) => new mongoose.Types.ObjectId(agentId)
+    );
+
+    console.log(agentIdsAsObjectIds);
+
+    // Find the onboarding document containing the agent
+    const onboardingDoc = await Onboarding.findOne({
+      "agents.agents._id": { $in: agentIdsAsObjectIds },
+    });
+
+    console.log(onboardingDoc);
+
+    if (onboardingDoc) {
+      for (const agentGroup of onboardingDoc.agents) {
+        // Check if the agent group contains any of the specified agents
+        const containsSpecifiedAgent = agentGroup.agents.some((agent) =>
+          agentIdsAsObjectIds.some((id) => id.equals(agent._id))
+        );
+
+        if (containsSpecifiedAgent) {
+          // Check if all agents in this group have lifetime access
+          const allAgentsLifetimeAccess = agentGroup.agents.every(
+            (agent) => agent.lifetimeAccess
+          );
+
+          if (allAgentsLifetimeAccess) {
+            // Return the verification code of the parent bot if all agents have lifetime access
+            return {
+              verificationCodebotplan: agentGroup.verificationCodebotplan,
+            };
+          } else {
+            console.log(
+              `Not all agents in verification code plan ${agentGroup.verificationCodebotplan} have lifetime access.`
+            );
+            return null; // or some default value
+          }
+        }
+      }
+    }
+
+    // Return null or some default value if no matching agent is found
+    return null;
+  } catch (error) {
+    console.error("Error fetching parent bot details:", error);
+    return null;
   }
 };

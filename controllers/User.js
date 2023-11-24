@@ -1,12 +1,11 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
-
-const nodemailer = require("nodemailer");
-const crypto = require("crypto");
+const Onboarding = require("../models/botSchema");
+const mongoose = require("mongoose");
+const Announcement = require("../models/announcement");
 
 exports.register_user = async (req, res) => {
-  console.log(req.body);
   try {
     const { name, email, password, phone, role } = req.body;
     const oldUser = await User.findOne({ email: email.toLowerCase() }); // Ensure case-insensitive check
@@ -74,7 +73,58 @@ exports.login_user = async (req, res, next) => {
 
 exports.get_user = async (req, res) => {
   if (req.isAuthenticated()) {
-    return res.status(200).json({ isLoggedIn: true, user: req.user });
+    let userResponse = { isLoggedIn: true, user: req.user };
+
+    if (req.user.role === "user") {
+      try {
+        const userId = new mongoose.Types.ObjectId(req.user._id);
+
+        // Fetch agents where lifetimeAccess is false and offerEndDate has not expired
+        const botsWithLifetimeAccess = await Onboarding.aggregate([
+          { $match: { user: userId } },
+          { $unwind: "$agents" },
+          { $unwind: "$agents.agents" },
+          { $match: { "agents.agents.lifetimeAccess": false } },
+          { $match: { "agents.agents.offerEndDate": { $gte: new Date() } } },
+          {
+            $project: {
+              agentType: "$agents.agents.agentType",
+              toneOfVoice: "$agents.agents.toneOfVoice",
+              serviceIndustry: "$agents.agents.serviceIndustry",
+              lifetimeAccess: "$agents.agents.lifetimeAccess",
+              offerValidityDays: "$agents.agents.offerValidityDays",
+              offerStartDate: "$agents.agents.offerStartDate",
+              offerEndDate: "$agents.agents.offerEndDate",
+              botStatus: "$agents.agents.botStatus",
+              verificationCodebotplan: "$agents.verificationCodebotplan",
+              agentId: "$agents.agents._id", // Include the agent's unique _id
+            },
+          },
+        ]);
+
+        userResponse.botsWithLifetimeAccess = botsWithLifetimeAccess;
+      } catch (error) {
+        console.error("Error fetching bots with lifetime access:", error);
+        return res
+          .status(500)
+          .json({ message: "Error fetching bots with lifetime access" });
+      }
+    }
+
+    if (req.user.role === "Admin") {
+      try {
+        // Fetch announcements related to the admin user
+        const announcements = await Announcement.find({ user: req.user._id });
+        userResponse.announcements = announcements;
+      } catch (error) {
+        console.error("Error fetching announcements:", error);
+        return res
+          .status(500)
+          .json({ message: "Error fetching announcements" });
+      }
+    }
+
+    return res.status(200).json(userResponse);
   } else {
     return res.status(200).json({ isLoggedIn: false });
   }

@@ -6,9 +6,11 @@ const router = express.Router();
 const {
   createOnboarding,
   additionalbot,
+  updateLifetimeAccess,
 } = require("../controllers/BotController");
 
 router.post("/postinfo", createOnboarding);
+router.post("/updateLifetimeAccess", updateLifetimeAccess);
 router.post("/addbot", additionalbot);
 
 module.exports = router;
