@@ -15,6 +15,7 @@ const {
   post_dns_records,
   updateAgentDetails,
   get_user_payment_plans,
+  updateTodoCompletion,
 } = require("../controllers/Admin");
 
 router.get("/get_clients", get_clients);
@@ -28,5 +29,6 @@ router.post("/updateapikey", update_api_key);
 router.post("/updatedomainname", update_domain_name);
 router.post("/postdnsrecords", post_dns_records);
 router.post("/updateAgentDetails", updateAgentDetails);
+router.post("/updateTodoCompletion/:todoId", updateTodoCompletion);
 
 module.exports = router;

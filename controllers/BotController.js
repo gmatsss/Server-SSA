@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Onboarding = require("../models/botSchema"); // Assuming the model is in the models directory
 const { MongoClient, GridFSBucket } = require("mongodb");
 const User = require("../models/User");
-const sendEmail = require("../middleware/sendmail");
+const { sendEmail, sendAdminNotification } = require("../middleware/sendmail");
 const Announcement = require("../models/announcement");
 
 exports.createOnboarding = async (req, res, next) => {
@@ -333,9 +333,6 @@ exports.updateLifetimeAccess = async (req, res, next) => {
     const userId = req.user._id;
     const agentSubscriptions = req.body.agentSubscriptions;
 
-    // Log for debugging
-    console.log("Received agentSubscriptions:", agentSubscriptions);
-
     // Check if agentSubscriptions is an array and has elements
     if (!Array.isArray(agentSubscriptions) || agentSubscriptions.length === 0) {
       return res.status(400).json({ message: "Invalid payload" });
@@ -343,7 +340,6 @@ exports.updateLifetimeAccess = async (req, res, next) => {
 
     // Process each agentSubscription
     const updates = agentSubscriptions.map(({ agentId }) => {
-      console.log(`Updating lifetime access for agentId: ${agentId}`);
       return Onboarding.findOneAndUpdate(
         { user: userId, "agents.agents._id": agentId },
         {
@@ -377,45 +373,55 @@ exports.updateLifetimeAccess = async (req, res, next) => {
         agentSubscriptions.map(({ agentId }) => agentId)
       );
 
-      // Construct a description with subscription types
-      const subscriptionDescriptions = agentSubscriptions
-        .map((sub) => `${sub.agentId} (${sub.subscriptionType})`)
-        .join(", ");
-
       let newTodo;
 
       if (parentBot && parentBot.verificationCodebotplan) {
         // Create a new todo for cases where parent bot's verification code is available
         newTodo = {
-          title: "Lifetime Access Granted",
-          description: `
-          Step 1: Confirm Lifetime Access Granted
-          - Granted to: ${user.fullname} (${user.email})
-        
-          Step 2: Locate Subscription in MoonClerk
-          - Search for user by name or email to find the subscription.
-          - Subscription types to check: ${subscriptionDescriptions}
-        
-          Step 3: Pause Recurring Charges
-          - Once located, pause any ongoing charges to prevent future billing.
-          - Verification code to match: ${parentBot.verificationCodebotplan}
-        
-          Step 4: Verification
-          - Ensure the correct plan is paused both verification are the same.
-        `,
+          title:
+            "Disable recurring Plan for Lifetime Access - " + user.fullname,
+          description:
+            "This task involves disabling the plan for a user who has been granted Lifetime Access." +
+            "\n· Verify that Lifetime Access has been granted to the user. User Details: " +
+            user.fullname +
+            " (" +
+            user.email +
+            ")." +
+            "\n· Use MoonClerk to find the user's subscription. Search Criteria: User's name or email." +
+            "\n· Subscription Details: " +
+            agentSubscriptions
+              .map(
+                (sub) =>
+                  `Verification Code for Confirmation: ${parentBot.verificationCodebotplan} - Type: ${sub.subscriptionType}`
+              )
+              .join("; ") +
+            "\n· Once the subscription is located, suspend any ongoing charges. This prevents future billing." +
+            "\n· Ensure that the correct plan is suspended. Confirm that both verifications match and are correct.",
           completed: false,
         };
       } else {
         // Create a different new todo for cases where parent bot's verification code is not available
         newTodo = {
           title: "Lifetime Access for Bot",
-          description: `${user.fullname} (${user.email}). Subscription types: ${subscriptionDescriptions} have bought lifetime access for a bot.`,
+          description:
+            `${user.fullname} (${user.email}) has bought lifetime access for bots. Details: ` +
+            agentSubscriptions
+              .map(
+                (sub) =>
+                  `Bot ID: ${sub.agentId}, Subscription: ${sub.subscriptionType}`
+              )
+              .join("; ") +
+            ".",
           completed: false,
         };
       }
 
-      // Post the new todo to all admins
-      await postAnnouncementToAdmins(newTodo);
+      const adminUsers = await postAnnouncementToAdmins(newTodo);
+
+      // Send email to each admin
+      for (const adminUser of adminUsers) {
+        sendAdminNotification(adminUser.email, newTodo).catch(console.error); // Log error but do not halt execution
+      }
 
       res.status(200).json({
         success: true, // Add this line
@@ -436,6 +442,10 @@ exports.updateLifetimeAccess = async (req, res, next) => {
 
 const postAnnouncementToAdmins = async (newTodo) => {
   try {
+    // Create a new ObjectId for the todo
+    const todoId = new mongoose.Types.ObjectId();
+    const todoWithId = { ...newTodo, _id: todoId };
+
     // Find all users with the role of 'Admin'
     const adminUsers = await User.find({ role: "Admin" });
 
@@ -443,17 +453,17 @@ const postAnnouncementToAdmins = async (newTodo) => {
     const updatePromises = adminUsers.map((adminUser) => {
       return Announcement.findOneAndUpdate(
         { user: adminUser._id },
-        { $push: { todos: newTodo } },
+        { $push: { todos: todoWithId } },
         { new: true, upsert: true }
       );
     });
 
     // Wait for all updates to complete
     await Promise.all(updatePromises);
-
-    console.log("Announcements updated for all admins.");
+    return adminUsers;
   } catch (error) {
     console.error("Error updating announcements for admins:", error);
+    throw error; // propagate the error
   }
 };
 
@@ -463,14 +473,10 @@ const getParentBotDetails = async (agentIds) => {
       (agentId) => new mongoose.Types.ObjectId(agentId)
     );
 
-    console.log(agentIdsAsObjectIds);
-
     // Find the onboarding document containing the agent
     const onboardingDoc = await Onboarding.findOne({
       "agents.agents._id": { $in: agentIdsAsObjectIds },
     });
-
-    console.log(onboardingDoc);
 
     if (onboardingDoc) {
       for (const agentGroup of onboardingDoc.agents) {

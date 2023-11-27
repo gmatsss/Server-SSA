@@ -7,6 +7,8 @@ const axios = require("axios");
 const qs = require("qs");
 const sendEmail = require("../middleware/mailer");
 const cron = require("node-cron");
+const Announcement = require("../models/announcement");
+const mongoose = require("mongoose");
 
 exports.downloadFile = async (req, res) => {
   try {
@@ -656,3 +658,31 @@ cron.schedule("0 */12 * * *", () => {
   console.log("Running scheduled task to update bot status");
   updateBotStatus();
 });
+
+exports.updateTodoCompletion = async (req, res) => {
+  try {
+    const todoId = req.params.todoId; // ID of the todo to update
+
+    // Convert todoId to ObjectId
+    const objectId = new mongoose.Types.ObjectId(todoId);
+
+    // Update the completed status of the specific todo in all announcements
+    const result = await Announcement.updateMany(
+      { "todos._id": objectId },
+      { $set: { "todos.$.completed": true } }
+    );
+
+    if (result.nModified === 0) {
+      return res
+        .status(404)
+        .json({ message: "No todo found with the given ID" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Todo updated successfully across all announcements" });
+  } catch (error) {
+    console.error("Error updating todo:", error);
+    res.status(500).json({ err: "An error occurred while updating the todo." });
+  }
+};

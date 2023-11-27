@@ -51,4 +51,48 @@ const sendEmail = async (req, res, next) => {
   }
 };
 
-module.exports = sendEmail;
+const sendAdminNotification = async (adminEmail, newTodo) => {
+  try {
+    // Reuse the SMTP transport configuration
+    const transporter = nodemailer.createTransport({
+      host: "mail.supersmartagents.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "billing@supersmartagents.com",
+        pass: "4Sgr3;;I83SmrJ",
+      },
+    });
+
+    // Construct email content
+    const subject = "New Admin Notification: Lifetime Access Update";
+    const text = `New update for lifetime access: ${newTodo.title}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e4;">
+        <h2 style="color: #333; border-bottom: 1px solid #e4e4e4; padding-bottom: 10px;">${newTodo.title}</h2>
+        <p style="font-size: 16px; line-height: 1.5; color: #555;">${newTodo.description}</p>
+        <p style="font-size: 16px; line-height: 1.5; color: #555;">
+          Please review the details and take necessary actions.
+        </p>
+        <p style="font-size: 16px; line-height: 1.5; color: #555;">
+          Warm regards,<br>
+          The Super Smart Agents Team
+        </p>
+      </div>
+    `;
+
+    // Send the email
+    await transporter.sendMail({
+      from: '"Super Smart Agents" <billing@supersmartagents.com>',
+      to: adminEmail,
+      subject: subject,
+      text: text,
+      html: html,
+    });
+  } catch (error) {
+    console.error("Error sending admin notification email:", error);
+    throw error;
+  }
+};
+
+module.exports = { sendEmail, sendAdminNotification };
