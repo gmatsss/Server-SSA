@@ -23,6 +23,7 @@ const allowedOrigins = [
   "http://ssa.customadesign.info",
   "http://34.199.84.82:3000",
   "https://supersmartagents.com",
+  "https://www.supersmartagents.com",
 ];
 
 const corsOptions = {
