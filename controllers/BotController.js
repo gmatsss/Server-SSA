@@ -4,6 +4,7 @@ const { MongoClient, GridFSBucket } = require("mongodb");
 const User = require("../models/User");
 const { sendEmail, sendAdminNotification } = require("../middleware/sendmail");
 const Announcement = require("../models/announcement");
+const axios = require("axios");
 
 exports.createOnboarding = async (req, res, next) => {
   try {
@@ -137,6 +138,8 @@ exports.createOnboarding = async (req, res, next) => {
 
     req.firstName = firstName;
     req.recipientEmail = recipientEmail;
+
+    fetchFirstPromoterData(recipientEmail);
 
     res.status(200).json({
       data: newOnboarding,
@@ -511,5 +514,55 @@ const getParentBotDetails = async (agentIds) => {
   } catch (error) {
     console.error("Error fetching parent bot details:", error);
     return null;
+  }
+};
+
+const fetchFirstPromoterData = async (email) => {
+  const config = {
+    method: "get",
+    url: "https://firstpromoter.com/api/v1/promoters/list?campaign_id=22048",
+    headers: {
+      "x-api-key": "4450bd7ad1136ceebcd94195f7cd6787",
+    },
+  };
+
+  try {
+    const response = await axios(config);
+    const promoters = response.data;
+
+    // Find the promoter with the specified email
+    const foundPromoter = promoters.find(
+      (promoter) => promoter.email === email
+    );
+
+    if (foundPromoter) {
+      await movePromoterToNewCampaign(foundPromoter.id, "22054"); // Replace '5399' with your destination campaign ID
+    } else {
+      console.log("No promoter found with email:", email);
+    }
+  } catch (error) {
+    console.log("Error with FirstPromoter request:", error);
+  }
+};
+
+const movePromoterToNewCampaign = async (promoterId, destinationCampaignId) => {
+  const config = {
+    method: "post",
+    url: "https://firstpromoter.com/api/v1/promoters/move_to_campaign",
+    headers: {
+      "x-api-key": "4450bd7ad1136ceebcd94195f7cd6787",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    data: new URLSearchParams({
+      id: promoterId,
+      destination_campaign_id: destinationCampaignId,
+    }).toString(),
+  };
+
+  try {
+    const response = await axios(config);
+    console.log("Promoter moved successfully:");
+  } catch (error) {
+    console.error("Error moving promoter:", error);
   }
 };

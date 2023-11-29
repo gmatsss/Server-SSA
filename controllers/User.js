@@ -33,7 +33,7 @@ exports.register_user = async (req, res) => {
       userId: user._id,
       message:
         role === "user"
-          ? "User registration complete. Proceed with onboarding."
+          ? "User registration complete"
           : "Registration complete.",
     };
 
