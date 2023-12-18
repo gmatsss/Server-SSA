@@ -46,6 +46,8 @@ mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    minPoolSize: 5, // Minimum number of connections in the pool
+    maxPoolSize: 50, // Maximum number of connections in the pool
   })
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log("Error connecting to DB"));
