@@ -14,16 +14,8 @@ exports.downloadFile = async (req, res) => {
   try {
     const fileId = new ObjectId(req.params.fileId);
 
-    const conn = await MongoClient.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const db = conn.db();
-
-    // Create a new instance of GridFSBucket
-    const bucket = new GridFSBucket(db, {
-      bucketName: "botfiles",
-    });
+    const db = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: "botfiles" });
 
     const file = await bucket.find({ _id: fileId }).toArray();
     if (!file || file.length === 0) {
@@ -44,48 +36,47 @@ exports.downloadFile = async (req, res) => {
 exports.get_clients = async (req, res) => {
   try {
     // Fetch users with the role of "User"
-    const users = await User.find({ role: "user" }).populate({
-      path: "onboardingDetails",
-      populate: { path: "agents" },
-    });
+    const users = await User.find({ role: "user" });
 
     if (!users || users.length === 0) {
       return res.status(404).json({ message: "No users found" });
     }
 
-    // Collect all file IDs from users' onboarding details
-    const fileIds = users.flatMap(
-      (user) => user.onboardingDetails?.uploadedFiles || []
+    //always reuse the connection
+    const db = mongoose.connection.db;
+
+    // Fetch the onboarding details for each user and populate the 'agents' field
+    const usersWithOnboarding = await Promise.all(
+      users.map(async (user) => {
+        const onboardingDetails = await Onboarding.findOne({
+          user: user._id,
+        }).populate("agents");
+
+        // Fetch the files associated with the onboarding details
+        const files = [];
+        if (onboardingDetails && onboardingDetails.uploadedFiles) {
+          for (const fileId of onboardingDetails.uploadedFiles) {
+            const file = await db
+              .collection("botfiles.files")
+              .findOne({ _id: new ObjectId(fileId) });
+
+            if (file) {
+              files.push({ _id: file._id.toString(), filename: file.filename }); // Convert _id to string for logging
+            }
+          }
+        }
+
+        return {
+          ...user._doc,
+          onboardingDetails: {
+            ...onboardingDetails._doc,
+            files: files,
+          },
+        };
+      })
     );
 
-    // Fetch all files in one query using Mongoose's existing connection
-    const files = await db
-      .collection("botfiles.files")
-      .find({
-        _id: { $in: fileIds.map((fileId) => new ObjectId(fileId)) },
-      })
-      .toArray();
-
-    // Map files to a more convenient structure
-    const fileMap = files.reduce((acc, file) => {
-      acc[file._id.toString()] = {
-        _id: file._id.toString(),
-        filename: file.filename,
-      };
-      return acc;
-    }, {});
-
-    // Add files to users' onboarding details
-    const usersWithOnboarding = users.map((user) => ({
-      ...user._doc,
-      onboardingDetails: {
-        ...user.onboardingDetails._doc,
-        files: user.onboardingDetails.uploadedFiles.map(
-          (fileId) => fileMap[fileId]
-        ),
-      },
-    }));
-
+    // Return the list of users with their roles and the populated onboarding details
     res.json(usersWithOnboarding);
   } catch (error) {
     console.error("Error fetching clients:", error);
