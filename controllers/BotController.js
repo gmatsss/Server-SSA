@@ -265,11 +265,7 @@ exports.additionalbot = async (req, res, next) => {
     }
 
     // MongoDB connection and GridFSBucket setup
-    const conn = await MongoClient.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const db = conn.db();
+    const db = mongoose.connection.db;
     const bucket = new GridFSBucket(db, { bucketName: "botfiles" });
 
     // Processing and uploading each file
