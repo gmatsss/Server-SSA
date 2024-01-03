@@ -145,3 +145,77 @@ exports.logout_user = (req, res) => {
     res.status(200).json({ message: "Successfully logged out." });
   });
 };
+
+exports.update_user = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get the user ID from the request parameters
+    const { fullname, email, phone } = req.body; // Get the updated values from the request body
+
+    // Optional: Check if the email is being updated to a new one and if it already exists
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser && existingUser._id.toString() !== userId) {
+        return res
+          .status(409)
+          .json({ data: null, error: "Email already in use." });
+      }
+    }
+
+    // Find the user by ID and update their details
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        fullname: fullname,
+        email: email ? email.toLowerCase() : undefined, // Update email if provided
+        phone: phone,
+      },
+      { new: true } // This option returns the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ data: null, error: "User not found." });
+    }
+
+    res.status(200).json({ data: updatedUser, error: null });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({
+      data: null,
+      error: "An error occurred while updating the user.",
+    });
+  }
+};
+
+exports.update_user_password = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ data: null, error: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ data: null, error: "Current password is incorrect." });
+    }
+
+    const encryptedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = encryptedPassword;
+    await user.save();
+
+    res.status(200).json({ data: { userId: user._id }, error: null });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({
+      data: null,
+      error: "An error occurred while updating the password.",
+    });
+  }
+};

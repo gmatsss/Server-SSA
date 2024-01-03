@@ -16,6 +16,7 @@ const {
   updateAgentDetails,
   get_user_payment_plans,
   updateTodoCompletion,
+  sendCustomEmailtoclient,
 } = require("../controllers/Admin");
 
 const {
@@ -36,6 +37,7 @@ router.get("/downloadFile/:fileId", downloadFile);
 router.get("/get_bots", get_logged_in_user_bots);
 router.get("/getuserpaymentplans", get_user_payment_plans);
 router.post("/sendEmailtoclient", sendEmailtoclient);
+router.post("/sendCustomEmailtoclient", sendCustomEmailtoclient);
 router.post("/sendticket", sendTicket);
 router.post("/createemail", createEmailAccount);
 router.post("/updateapikey", update_api_key);

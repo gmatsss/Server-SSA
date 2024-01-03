@@ -418,6 +418,56 @@ exports.sendEmailtoclient = async (req, res, next) => {
   }
 };
 
+exports.sendCustomEmailtoclient = async (req, res, next) => {
+  try {
+    // Create a transporter object using the default SMTP transport
+    const transporter = nodemailer.createTransport({
+      host: "mail.supersmartagents.com",
+      port: 465,
+      secure: true, // true for 465, false for other ports
+      auth: {
+        user: "support@supersmartagents.com",
+        pass: "4Sgr3;;I83SmrJ", // Replace with the email account's password
+      },
+    });
+
+    const { email, message } = req.body; // Include 'message' from the request body
+
+    // Use the provided 'message' for the email body
+    const subject = "Custom Message from SSA";
+    const text = message; // Use the custom message text
+    const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e4;">
+      <h2 style="color: #333; border-bottom: 1px solid #e4e4e4; padding-bottom: 10px;">Message from SSA</h2>
+      <p style="font-size: 16px; line-height: 1.5; color: #555;">
+          ${message} <!-- Use the custom message here -->
+      </p>
+      <p style="font-size: 16px; line-height: 1.5; color: #555;">
+          If you have any questions or need assistance, feel free to reach out to us.
+      </p>
+      <p style="font-size: 16px; line-height: 1.5; color: #555;">
+          Cheers,<br>
+          The Super Smart Agents Team
+      </p>
+    </div>
+    `;
+
+    // Send the email
+    await transporter.sendMail({
+      from: '"Super Smart Agents" <support@supersmartagents.com>',
+      to: email,
+      subject: subject,
+      text: text,
+      html: html,
+    });
+
+    res.status(200).send({ message: "Email sent successfully!" }); // Send a success response
+  } catch (error) {
+    console.error("Error sending email:", error);
+    next(error); // Pass the error to the next middleware or error handler
+  }
+};
+
 exports.sendTicket = async (req, res, next) => {
   try {
     // Create a transporter object using SendGrid's SMTP transport
