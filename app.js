@@ -76,7 +76,7 @@ initializePassport(passport);
 
 // Importing and using routes
 const testRoutes = require("./routes/test");
-app.use("/", testRoutes);
+app.use("/SSA", testRoutes);
 const User = require("./routes/User");
 app.use("/User", User);
 const retune = require("./routes/retune");
