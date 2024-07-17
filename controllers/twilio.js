@@ -5,15 +5,20 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const apiKeySid = process.env.TWILIO_API_KEY_SID;
 const apiKeySecret = process.env.TWILIO_API_KEY_SECRET;
 const twimlAppSid = process.env.TWILIO_TWIML_APP_SID;
+
+if (!accountSid || !authToken || !apiKeySid || !apiKeySecret || !twimlAppSid) {
+  console.error("One or more environment variables are missing.");
+}
+
+console.log("TWILIO_ACCOUNT_SID:", accountSid);
+console.log("TWILIO_AUTH_TOKEN:", authToken);
+console.log("TWILIO_API_KEY_SID:", apiKeySid);
+console.log("TWILIO_API_KEY_SECRET:", apiKeySecret);
+console.log("TWILIO_TWIML_APP_SID:", twimlAppSid);
+
 const client = new twilio(accountSid, authToken);
 
 exports.generateToken = (req, res) => {
-  console.log("TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID);
-  console.log("TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN);
-  console.log("TWILIO_API_KEY_SID:", process.env.TWILIO_API_KEY_SID);
-  console.log("TWILIO_API_KEY_SECRET:", process.env.TWILIO_API_KEY_SECRET);
-  console.log("TWILIO_TWIML_APP_SID:", process.env.TWILIO_TWIML_APP_SID);
-
   const AccessToken = twilio.jwt.AccessToken;
   const VoiceGrant = AccessToken.VoiceGrant;
 
