@@ -8,7 +8,7 @@ const twimlAppSid = process.env.TWILIO_TWIML_APP_SID;
 exports.generateToken = (req, res) => {
   const AccessToken = twilio.jwt.AccessToken;
   const VoiceGrant = AccessToken.VoiceGrant;
-  const identity = "Harry";
+  const identity = req.body.identity || "user";
 
   const accessToken = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
     identity: identity,
