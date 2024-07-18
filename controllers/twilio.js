@@ -66,32 +66,37 @@ exports.validateApiKey = (req, res) => {
 };
 
 exports.generateVoiceToken = (req, res) => {
-  const identity = req.query.identity || "DefaultIdentity";
-
   try {
+    if (!accountSid || !apiKeySid || !apiKeySecret || !twimlAppSid) {
+      throw new Error("Twilio credentials or application SID are not set.");
+    }
+
+    const identity = "user"; // Or generate a unique identity if needed
+    console.log(`Generating token for identity: ${identity}`);
+
     const AccessToken = twilio.jwt.AccessToken;
     const VoiceGrant = AccessToken.VoiceGrant;
 
     const accessToken = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
-      identity: identity,
+      identity,
     });
 
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: twimlAppSid,
-      incomingAllow: true, // Set to true if you want to allow incoming calls
+      incomingAllow: false, // Enable incoming calls if necessary
     });
 
     accessToken.addGrant(voiceGrant);
-    const token = accessToken.toJwt();
+    const jwt = accessToken.toJwt();
 
-    res.status(200).json({
+    res.json({
       identity: identity,
-      token: token,
+      token: jwt,
     });
   } catch (error) {
-    console.error("Error creating Twilio voice token:", error);
+    console.error("Error generating Twilio token:", error);
     res.status(500).send({
-      message: "Failed to create voice token",
+      message: "Failed to generate Twilio token",
       error: error.message,
     });
   }
