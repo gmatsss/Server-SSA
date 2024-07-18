@@ -104,6 +104,7 @@ exports.generateVoiceToken = (req, res) => {
 
 exports.handleVoiceRequest = (req, res) => {
   const { To } = req.query;
+  console.log(req.query);
   if (!To) {
     return res.status(400).send('Missing "To" parameter');
   }
