@@ -103,8 +103,10 @@ exports.generateVoiceToken = (req, res) => {
 };
 
 exports.handleVoiceRequest = (req, res) => {
+  const { To } = req.query;
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.dial({ callerId: "+16292228993" }, "+18704104327"); // Replace with the correct phone number
+  const dial = twiml.dial({ callerId: "+16292228993" }); // Replace with your Twilio number
+  dial.number(To); // Use the phone number from the query parameters
   res.type("text/xml");
   res.send(twiml.toString());
 };
