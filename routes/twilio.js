@@ -4,11 +4,13 @@ const {
   checkCredentials,
   validateApiKey,
   generateVoiceToken,
+  handleVoiceRequest,
 } = require("../controllers/twilio");
 
 router.get("/validate", checkCredentials);
 router.get("/validateApiKey", validateApiKey);
 router.get("/generateVoiceToken", generateVoiceToken);
+router.post("/voice", handleVoiceRequest);
 // router.post("/call", generateToken);
 
 module.exports = router;

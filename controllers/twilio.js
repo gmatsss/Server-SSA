@@ -101,3 +101,10 @@ exports.generateVoiceToken = (req, res) => {
     });
   }
 };
+
+exports.handleVoiceRequest = (req, res) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  twiml.dial({ callerId: "+16292228993" }, "+18704104327"); // Replace with the correct phone number
+  res.type("text/xml");
+  res.send(twiml.toString());
+};
