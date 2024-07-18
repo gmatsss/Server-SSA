@@ -103,15 +103,24 @@ exports.generateVoiceToken = (req, res) => {
 };
 
 exports.handleVoiceRequest = (req, res) => {
-  const { To } = req.body; // Read from body since Twilio Client sends params in body
-  console.log("Request Body:", req.body); // Debug log to ensure the parameter is received
+  console.log("Request Body:", req.body);
+
+  // Extract the 'params' field and parse it as JSON
+  let params;
+  try {
+    params = JSON.parse(req.body.params);
+  } catch (error) {
+    return res.status(400).send('Invalid "params" field format');
+  }
+
+  const { To } = params;
   if (!To) {
     return res.status(400).send('Missing "To" parameter');
   }
 
   const twiml = new twilio.twiml.VoiceResponse();
   const dial = twiml.dial({ callerId: "+16292228993" }); // Replace with your Twilio number
-  dial.number(To); // Use the phone number from the URL parameters
+  dial.number(To); // Use the phone number from the parsed parameters
   res.type("text/xml");
   res.send(twiml.toString());
 };
