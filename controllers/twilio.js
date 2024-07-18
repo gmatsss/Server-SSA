@@ -105,7 +105,6 @@ exports.generateVoiceToken = (req, res) => {
 exports.handleVoiceRequest = (req, res) => {
   console.log("Request Body:", req.body);
 
-  // Extract the 'params' field and parse it as JSON
   let params;
   try {
     params = JSON.parse(req.body.params);
@@ -119,8 +118,8 @@ exports.handleVoiceRequest = (req, res) => {
   }
 
   const twiml = new twilio.twiml.VoiceResponse();
-  const dial = twiml.dial({ callerId: "+16292228993" }); // Replace with your Twilio number
-  dial.number(To); // Use the phone number from the parsed parameters
+  const dial = twiml.dial({ callerId: "+16292228993" });
+  dial.number(To);
   res.type("text/xml");
   res.send(twiml.toString());
 };
