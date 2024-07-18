@@ -103,8 +103,8 @@ exports.generateVoiceToken = (req, res) => {
 };
 
 exports.handleVoiceRequest = (req, res) => {
-  const { To } = req.params;
-  console.log("URL Params:", req.params); // Debug log to ensure the parameter is received
+  const { To } = req.body; // Read from body since Twilio Client sends params in body
+  console.log("Request Body:", req.body); // Debug log to ensure the parameter is received
   if (!To) {
     return res.status(400).send('Missing "To" parameter');
   }
