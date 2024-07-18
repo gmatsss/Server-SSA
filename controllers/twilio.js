@@ -103,15 +103,15 @@ exports.generateVoiceToken = (req, res) => {
 };
 
 exports.handleVoiceRequest = (req, res) => {
-  const { To } = req.query;
-  console.log(req.query);
+  const { To } = req.params;
+  console.log("URL Params:", req.params); // Debug log to ensure the parameter is received
   if (!To) {
     return res.status(400).send('Missing "To" parameter');
   }
 
   const twiml = new twilio.twiml.VoiceResponse();
   const dial = twiml.dial({ callerId: "+16292228993" }); // Replace with your Twilio number
-  dial.number(To); // Use the phone number from the query parameters
+  dial.number(To); // Use the phone number from the URL parameters
   res.type("text/xml");
   res.send(twiml.toString());
 };
