@@ -15,6 +15,25 @@ const apiProxy = proxy(API_URL, {
   },
 });
 
+const dynamicChatProxy = proxy(API_URL, {
+  proxyReqPathResolver: function (req) {
+    const chatId = req.body.chatId;
+    if (req.url.startsWith("/create-dynamic-thread")) {
+      return `/api/chat/${chatId}/new-thread`;
+    }
+    if (req.url.startsWith("/get-dynamic-messages")) {
+      return `/api/chat/${chatId}/messages`;
+    }
+    return `/api${req.url}`;
+  },
+  proxyReqBodyDecorator: function (bodyContent, srcReq) {
+    // Ensure the chatId is removed from the body before sending it to the proxy
+    const { chatId, ...rest } = bodyContent;
+    return rest;
+  },
+});
+
 module.exports = {
   apiProxy,
+  dynamicChatProxy,
 };
