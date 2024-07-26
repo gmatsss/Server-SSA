@@ -17,6 +17,7 @@ const {
   get_user_payment_plans,
   updateTodoCompletion,
   sendCustomEmailtoclient,
+  getUserStatistics,
 } = require("../controllers/Admin");
 
 const {
@@ -45,6 +46,7 @@ router.post("/updatedomainname", update_domain_name);
 router.post("/postdnsrecords", post_dns_records);
 router.post("/updateAgentDetails", updateAgentDetails);
 router.post("/updateTodoCompletion/:todoId", updateTodoCompletion);
+router.get("/getUserStatistics", getUserStatistics);
 //roadmap
 router.post("/createRoadmap", createRoadmap);
 router.post("/likeRoadmap", likeRoadmap);

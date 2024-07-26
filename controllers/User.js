@@ -51,23 +51,30 @@ exports.register_user = async (req, res) => {
 exports.login_user = async (req, res, next) => {
   try {
     passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
-      if (!user)
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
         return res
           .status(401)
           .json({ message: info.message || "No user exists" });
+      }
 
-      req.logIn(user, (err) => {
+      req.logIn(user, async (err) => {
         if (err) {
           return next(err);
         }
-        return res
-          .status(200)
-          .json({ message: "Login successful", user: req.user });
+
+        await User.findByIdAndUpdate(user._id, {
+          $set: { lastLogin: Date.now() },
+        });
+
+        res.status(200).json({ message: "Login successful", user: req.user });
       });
     })(req, res, next);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

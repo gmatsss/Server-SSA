@@ -470,59 +470,47 @@ exports.sendCustomEmailtoclient = async (req, res, next) => {
 
 exports.sendTicket = async (req, res, next) => {
   try {
-    // Create a transporter object using SendGrid's SMTP transport
     const transporter = nodemailer.createTransport({
       host: "smtp.sendgrid.net",
-      port: 587, // or 465 for SSL
-      secure: false, // true for 465, false for other ports
+      port: 587,
+      secure: false,
       auth: {
-        user: "apikey", // SendGrid user for SMTP
-        pass: "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", // Replace with your actual SendGrid API key
+        user: "apikey",
+        pass: "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",
       },
     });
 
     const { email, subject, text, html } = req.body;
 
-    // Ensure all required fields are provided
     if (!email || !subject || !text || !html) {
       return res.status(400).send({ message: "Missing required fields." });
     }
 
     await transporter.sendMail({
-      from: `"Ticket to SSA" <sendticket@supersmartagents.com>`, // Replace with your verified SendGrid email
+      from: `"Ticket to SSA" <sendticket@supersmartagents.com>`,
       replyTo: "tickets@super-smart-agents.p.tawk.email",
       to: email,
-      // to: "tickets@super-smart-agents.p.tawk.email",
       subject: subject,
       text: text,
       html: html,
     });
 
-    // await transporter.sendMail({
-    //   sender: email, // User's email address
-    //   from: "sendticket@supersmartagents.com", // Your authenticated domain email address
-    //   to: "tickets@super-smart-agents.p.tawk.email",
-    //   subject: subject,
-    //   text: text,
-    //   html: html,
-    // });
-
-    res.status(200).send({ message: "Email sent successfully!" }); // Send a success response
+    res.status(200).send({ message: "Email sent successfully!" });
   } catch (error) {
     console.error("Error sending email:", error);
-    next(error); // Pass the error to the next middleware or error handler
+    next(error);
   }
 };
 
 exports.createEmailAccount = async (req, res) => {
   const cPanelUrl = "https://supersmartagents.com:2083/execute/Email/add_pop";
-  const username = "supersma"; // Replace with your cPanel username
-  const apiToken = "N4ZD9FA3XSV16QS5JKY4RIZC2WQY7957"; // Replace with your actual API token
+  const username = "supersma";
+  const apiToken = "N4ZD9FA3XSV16QS5JKY4RIZC2WQY7957";
 
-  const email = req.body.email; // Replace with the desired username for the new email account
-  const password = req.body.password; // Replace with the desired password for the new email account
-  const domain = "supersmartagents.com"; // Replace with your domain
-  const quota = 0; // Mailbox quota (0 for unlimited)
+  const email = req.body.email;
+  const password = req.body.password;
+  const domain = "supersmartagents.com";
+  const quota = 0;
 
   const data = {
     email,
@@ -560,7 +548,6 @@ exports.updateAgentDetails = async (req, res) => {
   const { userId, agentId, agentDetails } = req.body;
 
   try {
-    // Find the onboarding document by user ID
     const onboarding = await Onboarding.findOne({ user: userId });
 
     if (!onboarding) {
@@ -569,7 +556,6 @@ exports.updateAgentDetails = async (req, res) => {
         .json({ message: "Onboarding document not found." });
     }
 
-    // Find the specific agent within the onboarding document
     let agentFound = false;
     for (let agentGroup of onboarding.agents) {
       const agentIndex = agentGroup.agents.findIndex(
@@ -589,7 +575,6 @@ exports.updateAgentDetails = async (req, res) => {
       return res.status(404).json({ message: "Agent not found." });
     }
 
-    // Save the updated onboarding document
     await onboarding.save();
 
     res
@@ -724,5 +709,55 @@ exports.updateTodoCompletion = async (req, res) => {
   } catch (error) {
     console.error("Error updating todo:", error);
     res.status(500).json({ err: "An error occurred while updating the todo." });
+  }
+};
+
+exports.getUserStatistics = async (req, res) => {
+  try {
+    const now = new Date();
+    const oneDayAgo = new Date(now.setDate(now.getDate() - 1));
+    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 29));
+
+    const userRoleFilter = { role: "user" };
+
+    const activeUsersCount = await User.countDocuments({
+      ...userRoleFilter,
+      lastLogin: { $gte: thirtyDaysAgo },
+    });
+    console.log("Active Users Count:", activeUsersCount); // Log active users count
+
+    const newSignUpsCount = await User.countDocuments({
+      ...userRoleFilter,
+      createdAt: { $gte: oneDayAgo },
+    });
+    console.log("New Sign-Ups Count:", newSignUpsCount); // Log new sign-ups count
+
+    const totalUsersCount = await User.countDocuments(userRoleFilter);
+    console.log("Total Users Count:", totalUsersCount); // Log total users count
+
+    const engagedUsersCount = activeUsersCount;
+    console.log("Engaged Users Count:", engagedUsersCount); // Log engaged users count
+
+    const engagementRate = (
+      (engagedUsersCount / totalUsersCount) *
+      100
+    ).toFixed(2);
+    console.log("Engagement Rate:", engagementRate + "%"); // Log engagement rate
+
+    res.json({
+      success: true,
+      data: {
+        activeUsers: activeUsersCount,
+        newSignUps: newSignUpsCount,
+        engagementRate: engagementRate + "%",
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching user statistics:", err); // Log error details
+    res.status(500).send({
+      success: false,
+      message: "Failed to retrieve user statistics",
+      error: err.message,
+    });
   }
 };

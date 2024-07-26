@@ -6,6 +6,8 @@ var User = new mongoose.Schema({
   password: String,
   phone: Number,
   role: String,
+  createdAt: { type: Date, default: Date.now },
+  lastLogin: Date,
 });
 
 module.exports = mongoose.model("User", User);

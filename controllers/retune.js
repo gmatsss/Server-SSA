@@ -27,7 +27,6 @@ const dynamicChatProxy = proxy(API_URL, {
     return `/api${req.url}`;
   },
   proxyReqBodyDecorator: function (bodyContent, srcReq) {
-    // Ensure the chatId is removed from the body before sending it to the proxy
     const { chatId, ...rest } = bodyContent;
     return rest;
   },

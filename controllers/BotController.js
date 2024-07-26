@@ -558,3 +558,32 @@ const movePromoterToNewCampaign = async (promoterId, destinationCampaignId) => {
     console.error("Error moving promoter:", error);
   }
 };
+
+exports.getNumberOfBotsRegistered = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const onboarding = await Onboarding.findOne({ user: userId });
+    if (!onboarding) {
+      return res.status(404).json({
+        success: false,
+        message: "No onboarding information found for this user",
+      });
+    }
+
+    const totalBots = onboarding.agents.reduce(
+      (sum, agent) => sum + agent.agents.length,
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      numberOfBots: totalBots,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
