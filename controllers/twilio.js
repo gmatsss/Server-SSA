@@ -108,18 +108,27 @@ exports.handleVoiceRequest = (req, res) => {
   let params;
   try {
     params = JSON.parse(req.body.params);
+    console.log("Parsed Params:", params);
   } catch (error) {
+    console.error('Error parsing "params" field:', error);
     return res.status(400).send('Invalid "params" field format');
   }
 
   const { To } = params;
   if (!To) {
+    console.error('Missing "To" parameter');
     return res.status(400).send('Missing "To" parameter');
   }
 
-  const twiml = new twilio.twiml.VoiceResponse();
-  const dial = twiml.dial({ callerId: "+16292228993" });
-  dial.number(To);
-  res.type("text/xml");
-  res.send(twiml.toString());
+  try {
+    const twiml = new twilio.twiml.VoiceResponse();
+    const dial = twiml.dial({ callerId: "+16292228993" });
+    dial.number(To);
+    res.type("text/xml");
+    res.send(twiml.toString());
+    console.log("Twilio Voice Response sent successfully");
+  } catch (error) {
+    console.error("Error creating or sending Twilio Voice Response:", error);
+    res.status(500).send("Internal Server Error");
+  }
 };
