@@ -724,25 +724,20 @@ exports.getUserStatistics = async (req, res) => {
       ...userRoleFilter,
       lastLogin: { $gte: thirtyDaysAgo },
     });
-    console.log("Active Users Count:", activeUsersCount); // Log active users count
 
     const newSignUpsCount = await User.countDocuments({
       ...userRoleFilter,
       createdAt: { $gte: oneDayAgo },
     });
-    console.log("New Sign-Ups Count:", newSignUpsCount); // Log new sign-ups count
 
     const totalUsersCount = await User.countDocuments(userRoleFilter);
-    console.log("Total Users Count:", totalUsersCount); // Log total users count
 
     const engagedUsersCount = activeUsersCount;
-    console.log("Engaged Users Count:", engagedUsersCount); // Log engaged users count
 
     const engagementRate = (
       (engagedUsersCount / totalUsersCount) *
       100
     ).toFixed(2);
-    console.log("Engagement Rate:", engagementRate + "%"); // Log engagement rate
 
     res.json({
       success: true,

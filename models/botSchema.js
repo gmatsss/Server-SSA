@@ -52,7 +52,7 @@ const guidelinesSchema = new mongoose.Schema({
 const onboardingSchema = new mongoose.Schema({
   numberOfAgents: Number,
   agents: [agentSchema],
-  guidelines: [guidelinesSchema], // Embed the GuidelinesSchema here
+  guidelines: [guidelinesSchema],
   channels: [channelSchema],
   openAPIKey: {
     OpenAI: String,

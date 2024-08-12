@@ -10,6 +10,7 @@ const {
   logout_user,
   update_user,
   update_user_password,
+  check_userexist,
 } = require("../controllers/User");
 
 router.post("/register", register_user);
@@ -19,5 +20,7 @@ router.get("/getuser", get_user);
 router.post("/logoutuser", logout_user);
 router.post("/update_user/:userId", update_user);
 router.post("/update_user_password/:userId", update_user_password);
+
+router.post("/check_userexist", check_userexist);
 
 module.exports = router;

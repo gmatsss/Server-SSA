@@ -226,3 +226,23 @@ exports.update_user_password = async (req, res) => {
     });
   }
 };
+
+// In your controller file
+exports.check_userexist = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+    if (existingUser) {
+      return res.status(409).json({
+        error:
+          "You have already account please buy Voice agent through the dashboard",
+      });
+    }
+
+    res.status(200).json({ message: "Email is available." });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ error: "Server error occurred." });
+  }
+};
