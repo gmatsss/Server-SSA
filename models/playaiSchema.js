@@ -1,39 +1,78 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const agentVASchema = new Schema({
+const VAagentSchema = new Schema({
   agentGreeting: {
     type: String,
     required: true,
-    default: "Hello, how can I assist you today?",
   },
   agentPrompt: {
     type: String,
     required: true,
-    default:
-      "You are an AI support agent. Your role is to assist users with their queries and provide accurate and helpful information. Ensure all responses are professional and user-focused.",
+  },
+  customKnowledge: {
+    type: String,
+    required: true,
+  },
+  limitations: {
+    type: String,
+    required: true,
+  },
+  voiceOfTheAgent: {
+    type: String,
+    required: true,
   },
   agentBehavior: {
     type: String,
     required: true,
-    default: "Professional Use Case",
   },
-  customKnowledge: {
+  botStatus: {
     type: String,
-    required: false,
+    required: true,
+    default: "In Progress",
+  },
+  lifetimeAccess: {
+    type: Boolean,
+
+    default: false,
+  },
+  offerValidityDays: {
+    type: Number,
+  },
+  offerStartDate: {
+    type: Date,
+  },
+  offerEndDate: {
+    type: Date,
+  },
+
+  inboundMinutesLimit: {
+    type: Number,
+    required: true,
+    default: 2500,
+  },
+  inboundMinutesUsed: {
+    type: Number,
+    required: true,
+    default: 0,
   },
   phoneNumber: {
     type: String,
+    default: "+18704104327", //deb
+  },
+  _id: {
+    type: Schema.Types.ObjectId,
     required: true,
+    auto: true,
   },
 });
 
-const paymentPlanSchema = new Schema({
-  customer_id: {
+const VAagentGroupSchema = new Schema({
+  verificationCodebotplan: {
     type: String,
     required: true,
   },
-  verificationCodebotplan: String,
+  agents: [VAagentSchema],
 });
 
 const voiceAgentsSSASchema = new Schema({
@@ -41,8 +80,19 @@ const voiceAgentsSSASchema = new Schema({
     type: Number,
     required: true,
   },
-  vAgents: [agentVASchema],
-  paymentPlan: [paymentPlanSchema],
+  VAagentsGroup: [VAagentGroupSchema],
+  paymentPlan: {
+    customer_id: {
+      type: String,
+      required: true,
+    },
+    verificationCodebotplan: String,
+  },
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
 });
 
 const VoiceAgentsSSA = mongoose.model("VoiceAgentsSSA", voiceAgentsSSASchema);

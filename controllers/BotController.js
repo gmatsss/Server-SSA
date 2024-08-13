@@ -130,7 +130,7 @@ exports.createOnboarding = async (req, res, next) => {
     const recipientName = user.fullname;
 
     const names = recipientName.split(" ");
-    const firstName = names[0]; // Assuming the first name is the first part of the full name
+    const firstName = names[0];
 
     req.firstName = firstName;
     req.recipientEmail = recipientEmail;

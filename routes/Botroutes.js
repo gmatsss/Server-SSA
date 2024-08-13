@@ -10,9 +10,20 @@ const {
   getNumberOfBotsRegistered,
 } = require("../controllers/BotController");
 
+const {
+  createVoiceAgentSSA,
+  getAllVAgentsByUser,
+  updateCallDuration,
+} = require("../controllers/VAcontroller");
+
 router.post("/postinfo", createOnboarding);
 router.post("/updateLifetimeAccess", updateLifetimeAccess);
 router.post("/addbot", additionalbot);
 router.get("/getNumberOfBotsRegistered", getNumberOfBotsRegistered);
+
+//VA agents
+router.post("/updateCallDuration/:id", updateCallDuration);
+router.post("/createVoiceAgentSSA", createVoiceAgentSSA);
+router.get("/getAllVAgentsByUser", getAllVAgentsByUser);
 
 module.exports = router;
