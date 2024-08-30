@@ -5,7 +5,7 @@ const router = express.Router();
 //contorllers
 const {
   get_clients,
-  get_logged_in_user_bots,
+  get_bots,
   sendEmailtoclient,
   sendTicket,
   downloadFile,
@@ -35,7 +35,7 @@ const {
 
 router.get("/get_clients", get_clients);
 router.get("/downloadFile/:fileId", downloadFile);
-router.get("/get_bots", get_logged_in_user_bots);
+router.get("/get_bots", get_bots);
 router.get("/getuserpaymentplans", get_user_payment_plans);
 router.post("/sendEmailtoclient", sendEmailtoclient);
 router.post("/sendCustomEmailtoclient", sendCustomEmailtoclient);

@@ -9,6 +9,7 @@ const sendEmail = require("../middleware/mailer");
 const cron = require("node-cron");
 const Announcement = require("../models/announcement");
 const mongoose = require("mongoose");
+const VoiceAgentsSSA = require("../models/playaiSchema");
 
 exports.downloadFile = async (req, res) => {
   try {
@@ -35,58 +36,147 @@ exports.downloadFile = async (req, res) => {
 
 exports.get_clients = async (req, res) => {
   try {
-    // Fetch users with the role of "User"
     const users = await User.find({ role: "user" });
 
     if (!users || users.length === 0) {
       return res.status(404).json({ message: "No users found" });
     }
 
-    //always reuse the connection
-    const db = mongoose.connection.db;
-
-    // Fetch the onboarding details for each user and populate the 'agents' field
-    const usersWithOnboarding = await Promise.all(
+    const usersWithDetails = await Promise.all(
       users.map(async (user) => {
+        let userDetails = { ...user._doc };
+
+        let hasOnboardingDetails = false;
+        let hasVoiceAgentsSSA = false;
+
         const onboardingDetails = await Onboarding.findOne({
           user: user._id,
-        }).populate("agents");
+        }).populate({
+          path: "agents.agents",
+          strictPopulate: false,
+        });
 
-        // Fetch the files associated with the onboarding details
-        const files = [];
-        if (onboardingDetails && onboardingDetails.uploadedFiles) {
-          for (const fileId of onboardingDetails.uploadedFiles) {
-            const file = await db
-              .collection("botfiles.files")
-              .findOne({ _id: new ObjectId(fileId) });
+        if (onboardingDetails) {
+          hasOnboardingDetails = true;
 
-            if (file) {
-              files.push({ _id: file._id.toString(), filename: file.filename }); // Convert _id to string for logging
+          const files = [];
+          if (onboardingDetails.uploadedFiles) {
+            for (const fileId of onboardingDetails.uploadedFiles) {
+              const file = await mongoose.connection.db
+                .collection("botfiles.files")
+                .findOne({ _id: new ObjectId(fileId) });
+
+              if (file) {
+                files.push({
+                  _id: file._id.toString(),
+                  filename: file.filename,
+                });
+              }
             }
+          }
+
+          let isModified = false;
+
+          for (const agent of onboardingDetails.agents) {
+            for (const innerAgent of agent.agents) {
+              if (!innerAgent.lifetimeAccess) {
+                const subscriptionStatus = await getMoonClerkSubscriptionStatus(
+                  agent.verificationCodebotplan
+                );
+
+                if (
+                  subscriptionStatus &&
+                  innerAgent.botStatus !== "In Progress" &&
+                  innerAgent.botStatus !== subscriptionStatus
+                ) {
+                  innerAgent.botStatus = subscriptionStatus;
+                  isModified = true;
+                }
+              }
+            }
+          }
+
+          if (isModified) {
+            try {
+              await onboardingDetails.save();
+            } catch (saveError) {
+              console.error("Error saving onboarding details:", saveError);
+            }
+          }
+
+          userDetails.onboardingDetails = {
+            ...onboardingDetails._doc,
+            files: files,
+          };
+        }
+
+        // If no Onboarding details, fetch VoiceAgentsSSA details
+        if (!hasOnboardingDetails) {
+          const voiceAgentsSSA = await VoiceAgentsSSA.findOne({
+            user: user._id,
+          });
+
+          if (voiceAgentsSSA) {
+            hasVoiceAgentsSSA = true;
+            let isModified = false;
+
+            const verificationCodeToMatch =
+              voiceAgentsSSA.paymentPlan?.verificationCodebotplan ||
+              voiceAgentsSSA.minutesPlans?.[0]?.verificationCode;
+
+            // Loop through each agent and check the subscription status
+            for (const agent of voiceAgentsSSA.agents) {
+              if (!agent.lifetimeAccess) {
+                const minutesPlan = voiceAgentsSSA.minutesPlans.find(
+                  (plan) => plan.verificationCode === verificationCodeToMatch
+                );
+
+                const subscriptionStatus = minutesPlan
+                  ? await getMoonClerkSubscriptionStatus(
+                      minutesPlan.verificationCode
+                    )
+                  : null;
+
+                if (
+                  subscriptionStatus &&
+                  agent.botStatus !== "In Progress" &&
+                  agent.botStatus !== subscriptionStatus
+                ) {
+                  agent.botStatus = subscriptionStatus;
+                  isModified = true;
+                }
+              }
+            }
+
+            if (isModified) {
+              try {
+                await voiceAgentsSSA.save();
+              } catch (saveError) {
+                console.error(
+                  "Error saving voice agents SSA details:",
+                  saveError
+                );
+              }
+            }
+
+            userDetails.voiceAgentsSSA = voiceAgentsSSA;
           }
         }
 
-        return {
-          ...user._doc,
-          onboardingDetails: {
-            ...onboardingDetails._doc,
-            files: files,
-          },
-        };
+        return userDetails;
       })
     );
 
-    // Return the list of users with their roles and the populated onboarding details
-    res.json(usersWithOnboarding);
+    res.json(usersWithDetails);
   } catch (error) {
     console.error("Error fetching clients:", error);
-    res
-      .status(500)
-      .json({ message: "An error occurred while fetching the users" });
+    res.status(500).json({
+      message: "An error occurred while fetching the users",
+    });
   }
 };
 
-exports.get_logged_in_user_bots = async (req, res) => {
+exports.get_bots = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -95,14 +185,26 @@ exports.get_logged_in_user_bots = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const onboardingDetails = await Onboarding.findOne({ user: userId })
-      .populate("agents")
-      .populate("paymentplan");
+    // Fetch Onboarding details only if they exist
+    const onboardingDetails = await Onboarding.findOne({ user: userId });
 
     if (!onboardingDetails) {
       return res
         .status(404)
         .json({ message: "No onboarding details found for the user" });
+    }
+
+    // Populate only if agents exist
+    if (onboardingDetails.agents && onboardingDetails.agents.length > 0) {
+      await onboardingDetails.populate("agents");
+    }
+
+    // Populate only if payment plans exist
+    if (
+      onboardingDetails.paymentplan &&
+      onboardingDetails.paymentplan.length > 0
+    ) {
+      await onboardingDetails.populate("paymentplan");
     }
 
     const moonClerkResponse = await axios.get(
@@ -117,16 +219,15 @@ exports.get_logged_in_user_bots = async (req, res) => {
 
     let isModified = false;
 
+    // Update botStatus if necessary
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
-        // Check if lifetimeAccess is true, skip updating status
         if (innerAgent.lifetimeAccess) {
           return;
         }
 
         const verificationCode = outerAgent.verificationCodebotplan;
 
-        // Check for monthly subscription status
         const matchedCustomer = findCustomerByVerificationCode(
           moonClerkResponse.data,
           verificationCode
@@ -303,7 +404,6 @@ exports.post_dns_records = async (req, res) => {
   try {
     const { user, dnsRecords, email } = req.body;
 
-    console.log(user);
     // Validate user
     if (!user) {
       return res.status(400).json({ message: "User ID is required" });
@@ -639,7 +739,6 @@ async function fetchMoonClerkData() {
 async function updateBotStatus() {
   const moonClerkData = await fetchMoonClerkData();
   if (!moonClerkData) {
-    console.log("No MoonClerk data found, exiting task");
     return;
   }
 
@@ -660,9 +759,6 @@ async function updateBotStatus() {
           );
 
           if (matchedCustomer && matchedCustomer.subscription) {
-            console.log(
-              `Updating botStatus for agent ${innerAgent._id} to ${matchedCustomer.subscription.status}`
-            );
             innerAgent.botStatus = matchedCustomer.subscription.status;
             isModified = true;
           }
@@ -673,16 +769,71 @@ async function updateBotStatus() {
     if (isModified) {
       onboarding.markModified("agents");
       await onboarding.save();
-      console.log(`Onboarding details updated for user ${onboarding.user}`);
     }
   });
 }
 
-//Schedule the task to run every hour (adjust as needed)
+async function updateVoiceAgentData() {
+  try {
+    const moonClerkData = await fetchMoonClerkData();
+    if (!moonClerkData) {
+      console.error("No MoonClerk data found.");
+      return;
+    }
+
+    const voiceAgents = await VoiceAgentsSSA.find();
+
+    voiceAgents.forEach(async (voiceAgentSSA) => {
+      let isModified = false;
+
+      voiceAgentSSA.agents.forEach((VAagent) => {
+        if (VAagent.lifetimeAccess) {
+          return;
+        }
+
+        if (VAagent.botStatus !== "Active") {
+          const matchedCustomer = findCustomerByVerificationCode(
+            moonClerkData,
+            voiceAgentSSA.verificationCodebotplan
+          );
+
+          if (matchedCustomer && matchedCustomer.subscription) {
+            VAagent.botStatus = matchedCustomer.subscription.status;
+            isModified = true;
+          }
+        }
+      });
+
+      if (isModified) {
+        try {
+          await voiceAgentSSA.save();
+          console.log(`Voice Agent SSA with ID ${voiceAgentSSA._id} updated.`);
+        } catch (saveError) {
+          console.error(
+            `Error saving Voice Agent SSA with ID ${voiceAgentSSA._id}:`,
+            saveError
+          );
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error updating voice agent data:", error);
+  }
+}
+
 cron.schedule("0 */12 * * *", () => {
-  console.log("Running scheduled task to update bot status");
-  updateBotStatus();
+  try {
+    updateBotStatus();
+    updateVoiceAgentData();
+  } catch (cronError) {
+    console.error("Error in scheduled task:", cronError);
+  }
 });
+
+// cron.schedule("*/1 * * * *", () => {
+//   updateBotStatus();
+//   updateVoiceAgentData();
+// });
 
 exports.updateTodoCompletion = async (req, res) => {
   try {
@@ -754,5 +905,48 @@ exports.getUserStatistics = async (req, res) => {
       message: "Failed to retrieve user statistics",
       error: err.message,
     });
+  }
+};
+
+const getMoonClerkSubscriptionStatus = async (verificationCode) => {
+  try {
+    const moonClerkResponse = await axios.get(
+      "http://localhost:8001/moonclerk/api/customers",
+      {
+        headers: {
+          Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
+          Accept: "application/vnd.moonclerk+json;version=1",
+        },
+      }
+    );
+
+    // Ensure that the data is an array
+    const customers = moonClerkResponse.data.customers;
+    if (!Array.isArray(customers)) {
+      throw new Error("Expected an array in MoonClerk response data.");
+    }
+
+    // Function to find the customer by verification code
+    const findCustomerByVerificationCode = (customers, verificationCode) => {
+      return customers.find((customer) => {
+        return (
+          customer.custom_fields &&
+          customer.custom_fields.verification_code &&
+          customer.custom_fields.verification_code.response === verificationCode
+        );
+      });
+    };
+
+    const matchedCustomer = findCustomerByVerificationCode(
+      customers,
+      verificationCode
+    );
+
+    return matchedCustomer && matchedCustomer.subscription
+      ? matchedCustomer.subscription.status
+      : null;
+  } catch (error) {
+    console.error("Error fetching MoonClerk subscription status:", error);
+    return null;
   }
 };

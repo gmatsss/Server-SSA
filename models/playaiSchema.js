@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+// Schema for individual agents
 const VAagentSchema = new Schema({
   agentGreeting: {
     type: String,
@@ -31,34 +32,14 @@ const VAagentSchema = new Schema({
     required: true,
     default: "In Progress",
   },
-  lifetimeAccess: {
-    type: Boolean,
-
-    default: false,
+  phoneNumber: {
+    type: String,
+    default: "+18704104327",
   },
-  offerValidityDays: {
-    type: Number,
-  },
-  offerStartDate: {
-    type: Date,
-  },
-  offerEndDate: {
-    type: Date,
-  },
-
-  inboundMinutesLimit: {
-    type: Number,
-    required: true,
-    default: 2500,
-  },
-  inboundMinutesUsed: {
+  MinutesUsed: {
     type: Number,
     required: true,
     default: 0,
-  },
-  phoneNumber: {
-    type: String,
-    default: "+18704104327", //deb
   },
   _id: {
     type: Schema.Types.ObjectId,
@@ -67,26 +48,40 @@ const VAagentSchema = new Schema({
   },
 });
 
-const VAagentGroupSchema = new Schema({
-  verificationCodebotplan: {
+// Schema for plan/receipt of additional minutes
+const MinutesPlanSchema = new Schema({
+  verificationCode: {
     type: String,
     required: true,
   },
-  agents: [VAagentSchema],
+  minutesAdded: {
+    type: Number,
+    required: true,
+    default: 2500, // New minutes added when this record is created
+  },
+  dateAdded: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
+// Main schema
 const voiceAgentsSSASchema = new Schema({
   numberOfAgents: {
     type: Number,
     required: true,
   },
-  VAagentsGroup: [VAagentGroupSchema],
-  paymentPlan: {
-    customer_id: {
-      type: String,
-      required: true,
-    },
-    verificationCodebotplan: String,
+  agents: [VAagentSchema], // Agents are now directly under this schema
+  minutesPlans: [MinutesPlanSchema], // Track all minute purchases/allocations
+  totalMinutesLimit: {
+    type: Number,
+    required: true,
+    default: 2500, // Cumulative limit from all plans
+  },
+  totalMinutesUsed: {
+    type: Number,
+    required: true,
+    default: 0, // Cumulative usage across all agents
   },
   user: {
     type: Schema.Types.ObjectId,

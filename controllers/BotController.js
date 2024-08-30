@@ -5,6 +5,7 @@ const User = require("../models/User");
 const { sendEmail, sendAdminNotification } = require("../middleware/sendmail");
 const Announcement = require("../models/announcement");
 const axios = require("axios");
+const VoiceAgentsSSA = require("../models/playaiSchema");
 
 exports.createOnboarding = async (req, res, next) => {
   try {
@@ -153,7 +154,17 @@ exports.createOnboarding = async (req, res, next) => {
 
 exports.additionalbot = async (req, res, next) => {
   try {
+    console.log("found");
     const userId = req.user._id; // Assuming you have the user's ID
+
+    // Check if an onboarding document already exists
+    let onboarding = await Onboarding.findOne({ user: userId });
+
+    // If no onboarding document exists, create a new one
+    if (!onboarding) {
+      onboarding = new Onboarding({ user: userId });
+      await onboarding.save();
+    }
 
     // Extract and process agent data from the request
     let bots = [];
@@ -178,7 +189,6 @@ exports.additionalbot = async (req, res, next) => {
         serviceIndustry: bot.serviceIndustry,
         toneOfVoice: bot.toneOfVoice,
         botStatus: "In Progress", // Assuming default status
-        // Add other necessary properties if any
       });
     });
 
@@ -188,14 +198,14 @@ exports.additionalbot = async (req, res, next) => {
       agents: newAgentsData,
     };
 
-    // Update the existing onboarding document
-    const updatedOnboarding = await Onboarding.findOneAndUpdate(
+    // Update the existing onboarding document with new agents
+    onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { agents: agentGroup } },
       { new: true }
     );
 
-    if (!updatedOnboarding) {
+    if (!onboarding) {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
@@ -217,14 +227,14 @@ exports.additionalbot = async (req, res, next) => {
       channels: channels.map((channelName) => ({ channelName })),
     };
 
-    // Update the existing onboarding document
-    const updatedOnboardingchannel = await Onboarding.findOneAndUpdate(
+    // Update the existing onboarding document with new channels
+    onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { channels: newChannelGroup } },
       { new: true }
     );
 
-    if (!updatedOnboardingchannel) {
+    if (!onboarding) {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
@@ -240,14 +250,14 @@ exports.additionalbot = async (req, res, next) => {
       paymentPlans.push({ customer_id: paymentPlanID });
     }
 
-    // Update the existing onboarding document for payment plans
-    const updatedOnboardingpayment = await Onboarding.findOneAndUpdate(
+    // Update the existing onboarding document with new payment plans
+    onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { paymentplan: { $each: paymentPlans } } },
       { new: true }
     );
 
-    if (!updatedOnboardingpayment) {
+    if (!onboarding) {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
@@ -301,18 +311,18 @@ exports.additionalbot = async (req, res, next) => {
       uploadedFiles: uploadedFiles,
     };
 
-    const updatedOnboardingguide = await Onboarding.findOneAndUpdate(
+    onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { guidelines: newGuidelines } },
       { new: true }
     );
 
-    if (!updatedOnboardingguide) {
+    if (!onboarding) {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
     res.status(200).json({
-      data: updatedOnboarding,
+      data: onboarding,
       message: "Agent data added successfully to onboarding.",
     });
   } catch (error) {
@@ -562,6 +572,8 @@ const movePromoterToNewCampaign = async (promoterId, destinationCampaignId) => {
 exports.getNumberOfBotsRegistered = async (req, res) => {
   try {
     const userId = req.user._id;
+
+    // Fetch onboarding information to get the number of bots
     const onboarding = await Onboarding.findOne({ user: userId });
     if (!onboarding) {
       return res.status(404).json({
@@ -575,9 +587,17 @@ exports.getNumberOfBotsRegistered = async (req, res) => {
       0
     );
 
+    // Fetch voice agents information to get the number of VAs
+    const voiceAgentsRecord = await VoiceAgentsSSA.findOne({ user: userId });
+    const totalVoiceAgents = voiceAgentsRecord
+      ? voiceAgentsRecord.agents.length
+      : 0;
+
+    // Respond with both counts
     res.status(200).json({
       success: true,
       numberOfBots: totalBots,
+      numberOfVoiceAgents: totalVoiceAgents,
     });
   } catch (error) {
     res.status(500).json({

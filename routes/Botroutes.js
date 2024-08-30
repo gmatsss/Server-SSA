@@ -14,6 +14,7 @@ const {
   createVoiceAgentSSA,
   getAllVAgentsByUser,
   updateCallDuration,
+  checkMinutesLimit,
 } = require("../controllers/VAcontroller");
 
 router.post("/postinfo", createOnboarding);
@@ -23,6 +24,8 @@ router.get("/getNumberOfBotsRegistered", getNumberOfBotsRegistered);
 
 //VA agents
 router.post("/updateCallDuration/:id", updateCallDuration);
+router.get("/checkMinutesLimit/:agentId", checkMinutesLimit);
+
 router.post("/createVoiceAgentSSA", createVoiceAgentSSA);
 router.get("/getAllVAgentsByUser", getAllVAgentsByUser);
 
