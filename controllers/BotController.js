@@ -155,18 +155,15 @@ exports.createOnboarding = async (req, res, next) => {
 exports.additionalbot = async (req, res, next) => {
   try {
     console.log("found");
-    const userId = req.user._id; // Assuming you have the user's ID
+    const userId = req.user._id;
 
-    // Check if an onboarding document already exists
     let onboarding = await Onboarding.findOne({ user: userId });
 
-    // If no onboarding document exists, create a new one
     if (!onboarding) {
       onboarding = new Onboarding({ user: userId });
       await onboarding.save();
     }
 
-    // Extract and process agent data from the request
     let bots = [];
     const botKeys = Object.keys(req.body).filter((key) =>
       key.startsWith("bots[")
@@ -181,7 +178,6 @@ exports.additionalbot = async (req, res, next) => {
       }
     });
 
-    // Map each bot to the agent schema structure
     let newAgentsData = [];
     bots.forEach((bot) => {
       newAgentsData.push({
@@ -192,13 +188,11 @@ exports.additionalbot = async (req, res, next) => {
       });
     });
 
-    // Construct the agent group with a verification code
     let agentGroup = {
       verificationCodebotplan: req.body.verificationCodebotplan,
       agents: newAgentsData,
     };
 
-    // Update the existing onboarding document with new agents
     onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { agents: agentGroup } },
@@ -221,13 +215,11 @@ exports.additionalbot = async (req, res, next) => {
       }
     });
 
-    // Create a new channel group
     let newChannelGroup = {
       verifchannelcode: req.body.verifchannelcode,
       channels: channels.map((channelName) => ({ channelName })),
     };
 
-    // Update the existing onboarding document with new channels
     onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { channels: newChannelGroup } },
@@ -238,7 +230,6 @@ exports.additionalbot = async (req, res, next) => {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
-    // Extract and process payment plan data from the request
     let paymentPlans = [];
     const customerID = req.body.customerID;
     const paymentPlanID = req.body.paymentPlanID;
@@ -250,7 +241,6 @@ exports.additionalbot = async (req, res, next) => {
       paymentPlans.push({ customer_id: paymentPlanID });
     }
 
-    // Update the existing onboarding document with new payment plans
     onboarding = await Onboarding.findOneAndUpdate(
       { user: userId },
       { $push: { paymentplan: { $each: paymentPlans } } },
@@ -261,64 +251,67 @@ exports.additionalbot = async (req, res, next) => {
       return res.status(404).json({ message: "Onboarding record not found" });
     }
 
-    let uploadedFiles = [];
-    let files = [];
+    // Check if there are files to upload
+    if (req.files && Object.keys(req.files).length > 0) {
+      let uploadedFiles = [];
+      let files = [];
 
-    // Handling multiple file uploads
-    if (req.files["files[0]"]) {
-      files.push(req.files["files[0]"]);
-      let index = 1;
-      while (req.files[`files[${index}]`]) {
-        files.push(req.files[`files[${index}]`]);
-        index++;
-      }
-    }
-
-    // MongoDB connection and GridFSBucket setup
-    const db = mongoose.connection.db;
-    const bucket = new GridFSBucket(db, { bucketName: "botfiles" });
-
-    // Processing and uploading each file
-    for (const file of files) {
-      // Check for existing file and delete it
-      const existingFile = await db.collection("botfiles.files").findOne({
-        filename: file.name,
-      });
-
-      if (existingFile) {
-        await bucket.delete(existingFile._id);
+      // Handling multiple file uploads
+      if (req.files["files[0]"]) {
+        files.push(req.files["files[0]"]);
+        let index = 1;
+        while (req.files[`files[${index}]`]) {
+          files.push(req.files[`files[${index}]`]);
+          index++;
+        }
       }
 
-      // Upload the new file
-      const uploadStream = bucket.openUploadStream(file.name, {
-        contentType: file.mimetype,
-      });
-      uploadStream.write(file.data);
-      uploadStream.end();
+      // MongoDB connection and GridFSBucket setup
+      const db = mongoose.connection.db;
+      const bucket = new GridFSBucket(db, { bucketName: "botfiles" });
 
-      await new Promise((resolve, reject) => {
-        uploadStream.on("finish", (uploadedFile) => {
-          uploadedFiles.push(uploadedFile._id); // Store the GridFS file ID
-          resolve();
+      // Processing and uploading each file
+      for (const file of files) {
+        // Check for existing file and delete it
+        const existingFile = await db.collection("botfiles.files").findOne({
+          filename: file.name,
         });
-        uploadStream.on("error", reject);
-      });
-    }
 
-    // Update the existing onboarding document with new guidelines
-    let newGuidelines = {
-      additionalGuidelines: req.body.additionalInfo,
-      uploadedFiles: uploadedFiles,
-    };
+        if (existingFile) {
+          await bucket.delete(existingFile._id);
+        }
 
-    onboarding = await Onboarding.findOneAndUpdate(
-      { user: userId },
-      { $push: { guidelines: newGuidelines } },
-      { new: true }
-    );
+        // Upload the new file
+        const uploadStream = bucket.openUploadStream(file.name, {
+          contentType: file.mimetype,
+        });
+        uploadStream.write(file.data);
+        uploadStream.end();
 
-    if (!onboarding) {
-      return res.status(404).json({ message: "Onboarding record not found" });
+        await new Promise((resolve, reject) => {
+          uploadStream.on("finish", (uploadedFile) => {
+            uploadedFiles.push(uploadedFile._id); // Store the GridFS file ID
+            resolve();
+          });
+          uploadStream.on("error", reject);
+        });
+      }
+
+      // Update the existing onboarding document with new guidelines
+      let newGuidelines = {
+        additionalGuidelines: req.body.additionalInfo,
+        uploadedFiles: uploadedFiles,
+      };
+
+      onboarding = await Onboarding.findOneAndUpdate(
+        { user: userId },
+        { $push: { guidelines: newGuidelines } },
+        { new: true }
+      );
+
+      if (!onboarding) {
+        return res.status(404).json({ message: "Onboarding record not found" });
+      }
     }
 
     res.status(200).json({

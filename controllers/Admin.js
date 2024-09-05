@@ -208,7 +208,7 @@ exports.get_bots = async (req, res) => {
     }
 
     const moonClerkResponse = await axios.get(
-      "http://localhost:8001/moonclerk/api/customers",
+      "https://node.customadesign.info/SSA/moonclerk/api/customers",
       {
         headers: {
           Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
@@ -720,7 +720,7 @@ exports.get_user_payment_plans = async (req, res) => {
 async function fetchMoonClerkData() {
   try {
     const response = await axios.get(
-      "http://localhost:8001/moonclerk/api/customers",
+      "https://node.customadesign.info/SSA/moonclerk/api/customers",
       {
         headers: {
           Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
@@ -911,7 +911,7 @@ exports.getUserStatistics = async (req, res) => {
 const getMoonClerkSubscriptionStatus = async (verificationCode) => {
   try {
     const moonClerkResponse = await axios.get(
-      "http://localhost:8001/moonclerk/api/customers",
+      "https://node.customadesign.info/SSA/moonclerk/api/customers",
       {
         headers: {
           Authorization: "Bearer 08bf9295738475d4afc3362ba53678df",
