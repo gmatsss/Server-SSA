@@ -189,7 +189,6 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, timezone } = req.body;
 
-    // Ensure required fields are provided
     if (!date || !time || !fname || !lname || !email || !phone || !timezone) {
       return res.status(400).json({
         message:
