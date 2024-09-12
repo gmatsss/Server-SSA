@@ -148,17 +148,17 @@ exports.checkMinutesLimit = async (req, res) => {
 
 exports.setappointment = async (req, res) => {
   try {
-    // Log the request body to see the entire data
     console.log("Request body:", req.body);
 
-    // Destructure date and time from the request body
-    const { date, time } = req.body;
+    const { date, time, name, email } = req.body;
 
-    // Log the date and time
-    if (date && time) {
+    if (date && time && name && email) {
       console.log(`Appointment date: ${date}, Appointment time: ${time}`);
+      console.log(`Name: ${name}, Email: ${email}`);
     } else {
-      console.log("Date or time is missing from the request body.");
+      console.log(
+        "Date, time, name, or email is missing from the request body."
+      );
     }
 
     res.status(200).json({
@@ -166,6 +166,8 @@ exports.setappointment = async (req, res) => {
       appointmentDetails: {
         date,
         time,
+        name,
+        email,
       },
     });
   } catch (error) {
