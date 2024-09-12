@@ -31,6 +31,6 @@ router.post("/createVoiceAgentSSA", createVoiceAgentSSA);
 router.get("/getAllVAgentsByUser", getAllVAgentsByUser);
 
 //VA agents appointment
-router.get("/setappointment", setappointment);
+router.post("/setappointment", setappointment);
 
 module.exports = router;
