@@ -2,6 +2,7 @@ const axios = require("axios");
 const { sendEmail, sendAdminNotification } = require("../middleware/sendmail");
 const VoiceAgentsSSA = require("../models/playaiSchema");
 const User = require("../models/User");
+const moment = require("moment-timezone");
 
 exports.createVoiceAgentSSA = async (req, res, next) => {
   try {
@@ -146,39 +147,6 @@ exports.checkMinutesLimit = async (req, res) => {
   }
 };
 
-exports.setappointment = async (req, res) => {
-  try {
-    console.log("Request body:", req.body);
-
-    const { date, time, name, email } = req.body;
-
-    if (date && time && name && email) {
-      console.log(`Appointment date: ${date}, Appointment time: ${time}`);
-      console.log(`Name: ${name}, Email: ${email}`);
-    } else {
-      console.log(
-        "Date, time, name, or email is missing from the request body."
-      );
-    }
-
-    res.status(200).json({
-      message: "Appointment set successfully",
-      appointmentDetails: {
-        date,
-        time,
-        name,
-        email,
-      },
-    });
-  } catch (error) {
-    console.error("Error setting appointment:", error);
-    res.status(500).json({
-      message: "Error setting appointment",
-      error: error.message,
-    });
-  }
-};
-
 const fetchFirstPromoterData = async (email) => {
   const config = {
     method: "get",
@@ -203,5 +171,84 @@ const fetchFirstPromoterData = async (email) => {
     }
   } catch (error) {
     console.log("Error with FirstPromoter request:", error);
+  }
+};
+
+// Function to calculate time zone offset
+const getOffsetForTimeZone = (zone) => {
+  const offsetMinutes = moment.tz(zone).utcOffset();
+  const hours = Math.abs(Math.floor(offsetMinutes / 60));
+  const minutes = Math.abs(offsetMinutes % 60);
+  return `${offsetMinutes >= 0 ? "+" : "-"}${String(hours).padStart(
+    2,
+    "0"
+  )}:${String(minutes).padStart(2, "0")}`;
+};
+
+exports.setappointment = async (req, res) => {
+  try {
+    const { date, time, fname, lname, email, phone, timezone } = req.body;
+
+    // Ensure required fields are provided
+    if (!date || !time || !fname || !lname || !email || !phone || !timezone) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: date, time, name, email, phone, calendarId, or timezone",
+      });
+    }
+
+    // Calculate the time zone offset
+    const timeZoneOffset = getOffsetForTimeZone(timezone);
+
+    // Extract only the date and time from the provided time, without the timezone offset
+    const dateTimeOnly = time.split(/[-+]\d{2}:\d{2}/)[0];
+
+    // Combine the date and time without offset, and append the correct timezone offset
+    const selectedSlot = `${date}T${dateTimeOnly}${timeZoneOffset}`;
+
+    // Prepare the request body for GoHighLevel API
+    const appointmentData = {
+      calendarId: "tYBftnzoLm0YUHCGfGfD",
+      selectedTimezone: timezone,
+      selectedSlot: selectedSlot,
+      email,
+      phone,
+      fname,
+      lname,
+    };
+
+    // Make a POST request to GoHighLevel API to set the appointment using axios
+    const response = await axios.post(
+      "https://rest.gohighlevel.com/v1/appointments/",
+      appointmentData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM`, // Replace with your actual token
+        },
+      }
+    );
+
+    console.log(response);
+
+    // Check if the response from the API is successful
+    if (response.status === 200) {
+      res.status(200).json({
+        message: "Appointment set successfully",
+        appointmentDetails: response.data,
+      });
+    } else {
+      // Handle error responses from GoHighLevel
+      res.status(response.status).json({
+        message: "Error setting appointment",
+        error: response.data,
+      });
+    }
+  } catch (error) {
+    console.error("Error setting appointment:", error);
+    res.status(500).json({
+      message: "Internal server error while setting appointment",
+      error: error.message,
+    });
   }
 };
