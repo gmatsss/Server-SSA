@@ -148,9 +148,32 @@ exports.checkMinutesLimit = async (req, res) => {
 
 exports.setappointment = async (req, res) => {
   try {
-    console.log(req.body);
+    // Log the request body to see the entire data
+    console.log("Request body:", req.body);
+
+    // Destructure date and time from the request body
+    const { date, time } = req.body;
+
+    // Log the date and time
+    if (date && time) {
+      console.log(`Appointment date: ${date}, Appointment time: ${time}`);
+    } else {
+      console.log("Date or time is missing from the request body.");
+    }
+
+    res.status(200).json({
+      message: "Appointment set successfully",
+      appointmentDetails: {
+        date,
+        time,
+      },
+    });
   } catch (error) {
-    console.error("Error  limit:", error);
+    console.error("Error setting appointment:", error);
+    res.status(500).json({
+      message: "Error setting appointment",
+      error: error.message,
+    });
   }
 };
 
