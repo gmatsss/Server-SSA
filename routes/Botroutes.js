@@ -15,6 +15,7 @@ const {
   getAllVAgentsByUser,
   updateCallDuration,
   checkMinutesLimit,
+  setappointment,
 } = require("../controllers/VAcontroller");
 
 router.post("/postinfo", createOnboarding);
@@ -28,5 +29,8 @@ router.get("/checkMinutesLimit/:agentId", checkMinutesLimit);
 
 router.post("/createVoiceAgentSSA", createVoiceAgentSSA);
 router.get("/getAllVAgentsByUser", getAllVAgentsByUser);
+
+//VA agents appointment
+router.get("/setappointment", setappointment);
 
 module.exports = router;

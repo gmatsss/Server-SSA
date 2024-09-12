@@ -46,9 +46,7 @@ exports.get_clients = async (req, res) => {
       users.map(async (user) => {
         let userDetails = { ...user._doc };
 
-        let hasOnboardingDetails = false;
-        let hasVoiceAgentsSSA = false;
-
+        // Fetch onboarding details
         const onboardingDetails = await Onboarding.findOne({
           user: user._id,
         }).populate({
@@ -57,8 +55,6 @@ exports.get_clients = async (req, res) => {
         });
 
         if (onboardingDetails) {
-          hasOnboardingDetails = true;
-
           const files = [];
           if (onboardingDetails.uploadedFiles) {
             for (const fileId of onboardingDetails.uploadedFiles) {
@@ -76,7 +72,6 @@ exports.get_clients = async (req, res) => {
           }
 
           let isModified = false;
-
           for (const agent of onboardingDetails.agents) {
             for (const innerAgent of agent.agents) {
               if (!innerAgent.lifetimeAccess) {
@@ -110,64 +105,68 @@ exports.get_clients = async (req, res) => {
           };
         }
 
-        // If no Onboarding details, fetch VoiceAgentsSSA details
-        if (!hasOnboardingDetails) {
-          const voiceAgentsSSA = await VoiceAgentsSSA.findOne({
-            user: user._id,
-          });
+        const voiceAgentsSSA = await VoiceAgentsSSA.findOne({
+          user: user._id,
+        });
 
-          if (voiceAgentsSSA) {
-            hasVoiceAgentsSSA = true;
-            let isModified = false;
+        // Process VoiceAgentsSSA details if they exist
+        if (voiceAgentsSSA) {
+          let isModified = false;
 
-            const verificationCodeToMatch =
-              voiceAgentsSSA.paymentPlan?.verificationCodebotplan ||
-              voiceAgentsSSA.minutesPlans?.[0]?.verificationCode;
+          const verificationCodeToMatch =
+            voiceAgentsSSA.paymentPlan?.verificationCodebotplan ||
+            voiceAgentsSSA.minutesPlans?.[0]?.verificationCode;
 
-            // Loop through each agent and check the subscription status
-            for (const agent of voiceAgentsSSA.agents) {
-              if (!agent.lifetimeAccess) {
-                const minutesPlan = voiceAgentsSSA.minutesPlans.find(
-                  (plan) => plan.verificationCode === verificationCodeToMatch
-                );
+          console.log(verificationCodeToMatch);
 
-                const subscriptionStatus = minutesPlan
-                  ? await getMoonClerkSubscriptionStatus(
-                      minutesPlan.verificationCode
-                    )
-                  : null;
+          for (const agent of voiceAgentsSSA.agents) {
+            if (!agent.lifetimeAccess) {
+              const minutesPlan = voiceAgentsSSA.minutesPlans.find(
+                (plan) => plan.verificationCode === verificationCodeToMatch
+              );
 
-                if (
-                  subscriptionStatus &&
-                  agent.botStatus !== "In Progress" &&
-                  agent.botStatus !== subscriptionStatus
-                ) {
-                  agent.botStatus = subscriptionStatus;
-                  isModified = true;
-                }
+              const subscriptionStatus = minutesPlan
+                ? await getMoonClerkSubscriptionStatus(
+                    minutesPlan.verificationCode
+                  )
+                : null;
+
+              if (
+                subscriptionStatus &&
+                agent.botStatus !== "In Progress" &&
+                agent.botStatus !== subscriptionStatus
+              ) {
+                agent.botStatus = subscriptionStatus;
+                isModified = true;
               }
             }
-
-            if (isModified) {
-              try {
-                await voiceAgentsSSA.save();
-              } catch (saveError) {
-                console.error(
-                  "Error saving voice agents SSA details:",
-                  saveError
-                );
-              }
-            }
-
-            userDetails.voiceAgentsSSA = voiceAgentsSSA;
           }
+
+          if (isModified) {
+            try {
+              await voiceAgentsSSA.save();
+            } catch (saveError) {
+              console.error(
+                "Error saving voice agents SSA details:",
+                saveError
+              );
+            }
+          }
+
+          userDetails.voiceAgentsSSA = voiceAgentsSSA;
         }
 
-        return userDetails;
+        // Add only if either onboardingDetails or voiceAgentsSSA exist
+        if (onboardingDetails || voiceAgentsSSA) {
+          return userDetails;
+        }
       })
     );
 
-    res.json(usersWithDetails);
+    // Filter out undefined entries (users with no data)
+    const filteredUsersWithDetails = usersWithDetails.filter(Boolean);
+
+    res.json(filteredUsersWithDetails);
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({
@@ -219,7 +218,6 @@ exports.get_bots = async (req, res) => {
 
     let isModified = false;
 
-    // Update botStatus if necessary
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
         if (innerAgent.lifetimeAccess) {
@@ -745,9 +743,10 @@ async function updateBotStatus() {
   const onboardings = await Onboarding.find().populate("agents");
   onboardings.forEach(async (onboarding) => {
     let isModified = false;
+
+    console.log(onboardings);
     onboarding.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
-        // Skip updating status if lifetimeAccess is true
         if (innerAgent.lifetimeAccess) {
           return;
         }

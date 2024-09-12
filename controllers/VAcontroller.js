@@ -48,7 +48,6 @@ exports.createVoiceAgentSSA = async (req, res, next) => {
     req.firstName = firstName;
     req.recipientEmail = recipientEmail;
 
-    // Call to external service (as in original code)
     fetchFirstPromoterData(recipientEmail);
 
     res.status(201).json({
@@ -57,7 +56,6 @@ exports.createVoiceAgentSSA = async (req, res, next) => {
         "Voice Agent SSA created and First Promoter integration successful.",
     });
 
-    // Send email after response (asynchronous)
     sendEmail(req, res, next);
   } catch (error) {
     console.error(error);
@@ -71,7 +69,6 @@ exports.getAllVAgentsByUser = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Find all Voice Agents SSA documents associated with the userId
     const voiceAgentsSSA = await VoiceAgentsSSA.find({ user: userId });
 
     if (!voiceAgentsSSA || voiceAgentsSSA.length === 0) {
@@ -80,7 +77,6 @@ exports.getAllVAgentsByUser = async (req, res) => {
         .json({ message: "No VA agents found for this user." });
     }
 
-    // Extract all VA agents directly from the agents array in each VoiceAgentsSSA document
     const allAgents = voiceAgentsSSA.flatMap((voiceAgent) => voiceAgent.agents);
 
     res.status(200).json({ agents: allAgents });
@@ -94,10 +90,9 @@ exports.getAllVAgentsByUser = async (req, res) => {
 
 exports.updateCallDuration = async (req, res) => {
   try {
-    const { id } = req.params; // Agent ID
+    const { id } = req.params;
     const { callDurationInMinutes } = req.body;
 
-    // Find the Voice Agent SSA document containing the specific agent
     const voiceAgent = await VoiceAgentsSSA.findOne({
       "agents._id": id,
     });
@@ -106,20 +101,15 @@ exports.updateCallDuration = async (req, res) => {
       return res.status(404).json({ message: "Voice Agent not found." });
     }
 
-    // Find the specific agent within the agents array
     const agent = voiceAgent.agents.id(id);
 
     if (!agent) {
       return res.status(404).json({ message: "Agent not found." });
     }
 
-    // Add the call duration to the specific agent's minutes used
     agent.MinutesUsed += callDurationInMinutes;
-
-    // Update the total minutes used in the SSA document
     voiceAgent.totalMinutesUsed += callDurationInMinutes;
 
-    // Save the updated document
     await voiceAgent.save();
 
     return res.status(200).json({ message: "Call duration updated." });
@@ -133,7 +123,6 @@ exports.checkMinutesLimit = async (req, res) => {
   try {
     const { agentId } = req.params;
 
-    // Find the Voice Agent SSA document by the agent ID
     const voiceAgent = await VoiceAgentsSSA.findOne({
       "agents._id": agentId,
     });
@@ -142,7 +131,6 @@ exports.checkMinutesLimit = async (req, res) => {
       return res.status(404).json({ message: "Voice Agent not found." });
     }
 
-    // Check if total minutes used have reached or exceeded the total limit
     if (voiceAgent.totalMinutesUsed >= voiceAgent.totalMinutesLimit) {
       return res.status(403).json({
         message: "Total minutes limit reached. Cannot initiate a call.",
@@ -155,6 +143,14 @@ exports.checkMinutesLimit = async (req, res) => {
   } catch (error) {
     console.error("Error checking minutes limit:", error);
     res.status(500).json({ message: "Error checking minutes limit." });
+  }
+};
+
+exports.setappointment = async (req, res) => {
+  try {
+    console.log(req.body);
+  } catch (error) {
+    console.error("Error  limit:", error);
   }
 };
 
