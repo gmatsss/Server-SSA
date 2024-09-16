@@ -247,6 +247,7 @@ exports.setappointment = async (req, res) => {
       }
     );
 
+    console.log(response);
     if (response.status === 200) {
       res.status(200).json({
         message: "Appointment set successfully",
