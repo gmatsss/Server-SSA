@@ -188,17 +188,10 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone } = req.body;
 
-    // Log the received values
-    console.log("Received Data:", {
-      date,
-      time,
-      fname,
-      lname,
-      email,
-      phone,
-    });
+    // Log the received values for clarity
+    console.log("Received Data:", { date, time, fname, lname, email, phone });
 
-    const selectedTimezone = "America/Chicago"; // Set the timezone
+    const selectedTimezone = "America/Chicago"; // Setting the timezone
 
     // Ensure all required fields are present
     if (!date || !time || !fname || !lname || !email || !phone) {
@@ -207,7 +200,7 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    // Add current year if the date doesn't include it
+    // If the date doesn't include the year, add the current year
     const currentYear = new Date().getFullYear();
     const fullDate = moment(`${date} ${currentYear}`, "MMMM DD YYYY");
 
@@ -232,7 +225,7 @@ exports.setappointment = async (req, res) => {
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
-      calendarId: "tYBftnzoLm0YUHCGfGfD",
+      calendarId: "tYBftnzoLm0YUHCGfGfD", // your calendarId
       selectedTimezone,
       selectedSlot,
       email,
@@ -260,7 +253,7 @@ exports.setappointment = async (req, res) => {
 
     if (response.status === 200) {
       res.status(200).json({
-        message: "Appointment set successfully",
+        message: "Appointment set successfully!",
         appointmentDetails: response.data,
       });
     } else {
@@ -272,10 +265,10 @@ exports.setappointment = async (req, res) => {
   } catch (error) {
     console.error("Error setting appointment:", error);
 
-    // Reduce the size of the error response
+    // Send a simplified error message
     res.status(500).json({
       message: "Internal server error while setting appointment",
-      error: error.message, // only send error message instead of full error stack
+      error: error.message,
     });
   }
 };
