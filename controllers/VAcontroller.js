@@ -188,6 +188,16 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, timezone } = req.body;
 
+    // Log all the incoming variables
+    console.log("Received Data:");
+    console.log("Date:", date);
+    console.log("Time:", time);
+    console.log("First Name:", fname);
+    console.log("Last Name:", lname);
+    console.log("Email:", email);
+    console.log("Phone:", phone);
+    console.log("Timezone:", timezone);
+
     const selectedTimezone = timezone || "America/Chicago";
 
     if (!date || !time || !fname || !lname || !email || !phone) {
@@ -198,10 +208,12 @@ exports.setappointment = async (req, res) => {
     }
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
-
     const dateTimeOnly = time.split(/[-+]\d{2}:\d{2}/)[0];
-
     const selectedSlot = `${date}T${dateTimeOnly}${timeZoneOffset}`;
+
+    // Log the formatted slot and timezone
+    console.log("Selected Slot:", selectedSlot);
+    console.log("Selected Timezone:", selectedTimezone);
 
     const appointmentData = {
       calendarId: "tYBftnzoLm0YUHCGfGfD",
