@@ -188,7 +188,6 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, timezone } = req.body;
 
-    // Default timezone to 'America/Chicago' (Arkansas timezone) if not provided
     const selectedTimezone = timezone || "America/Chicago";
 
     if (!date || !time || !fname || !lname || !email || !phone) {
@@ -200,10 +199,8 @@ exports.setappointment = async (req, res) => {
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Remove any existing timezone offset from the time before appending the new one
     const dateTimeOnly = time.split(/[-+]\d{2}:\d{2}/)[0];
 
-    // Construct the full datetime string with the selected timezone
     const selectedSlot = `${date}T${dateTimeOnly}${timeZoneOffset}`;
 
     const appointmentData = {
