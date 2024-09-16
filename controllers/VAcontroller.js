@@ -174,7 +174,6 @@ const fetchFirstPromoterData = async (email) => {
   }
 };
 
-// Function to calculate time zone offset
 const getOffsetForTimeZone = (zone) => {
   const offsetMinutes = moment.tz(zone).utcOffset();
   const hours = Math.abs(Math.floor(offsetMinutes / 60));
@@ -189,34 +188,34 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, timezone } = req.body;
 
-    if (!date || !time || !fname || !lname || !email || !phone || !timezone) {
+    // Default timezone to 'America/Chicago' (Arkansas timezone) if not provided
+    const selectedTimezone = timezone || "America/Chicago";
+
+    if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
         message:
-          "Missing required fields: date, time, name, email, phone, calendarId, or timezone",
+          "Missing required fields: date, time, name, email, phone, or timezone",
       });
     }
 
-    // Calculate the time zone offset
-    const timeZoneOffset = getOffsetForTimeZone(timezone);
+    const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Extract only the date and time from the provided time, without the timezone offset
+    // Remove any existing timezone offset from the time before appending the new one
     const dateTimeOnly = time.split(/[-+]\d{2}:\d{2}/)[0];
 
-    // Combine the date and time without offset, and append the correct timezone offset
+    // Construct the full datetime string with the selected timezone
     const selectedSlot = `${date}T${dateTimeOnly}${timeZoneOffset}`;
 
-    // Prepare the request body for GoHighLevel API
     const appointmentData = {
       calendarId: "tYBftnzoLm0YUHCGfGfD",
-      selectedTimezone: timezone,
-      selectedSlot: selectedSlot,
+      selectedTimezone,
+      selectedSlot,
       email,
       phone,
       fname,
       lname,
     };
 
-    // Make a POST request to GoHighLevel API to set the appointment using axios
     const response = await axios.post(
       "https://rest.gohighlevel.com/v1/appointments/",
       appointmentData,
@@ -228,16 +227,12 @@ exports.setappointment = async (req, res) => {
       }
     );
 
-    console.log(response);
-
-    // Check if the response from the API is successful
     if (response.status === 200) {
       res.status(200).json({
         message: "Appointment set successfully",
         appointmentDetails: response.data,
       });
     } else {
-      // Handle error responses from GoHighLevel
       res.status(response.status).json({
         message: "Error setting appointment",
         error: response.data,
