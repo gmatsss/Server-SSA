@@ -186,7 +186,7 @@ const getOffsetForTimeZone = (zone) => {
 
 exports.setappointment = async (req, res) => {
   try {
-    const { date, time, fname, lname, email, phone, timezone } = req.body;
+    const { date, time, fname, lname, email, phone } = req.body;
 
     // Log the received values
     console.log("Received Data:", {
@@ -196,10 +196,9 @@ exports.setappointment = async (req, res) => {
       lname,
       email,
       phone,
-      timezone,
     });
 
-    const selectedTimezone = timezone || "America/Chicago";
+    const selectedTimezone = "America/Chicago";
 
     if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
