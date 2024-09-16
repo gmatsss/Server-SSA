@@ -200,22 +200,26 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    // If the date doesn't include the year, add the current year
-    const currentYear = new Date().getFullYear();
-    const fullDate = moment(`${date} ${currentYear}`, "MMMM DD YYYY");
+    let fullDate;
 
-    // Check if the date is valid
-    if (!fullDate.isValid()) {
+    // Check the date format and parse accordingly
+    if (moment(date, "MMMM DD, YYYY", true).isValid()) {
+      // If date is in 'MMMM DD, YYYY' format
+      fullDate = moment(date, "MMMM DD, YYYY");
+    } else if (moment(date, "YYYY-MM-DD", true).isValid()) {
+      // If date is in 'YYYY-MM-DD' format
+      fullDate = moment(date, "YYYY-MM-DD");
+    } else {
       return res.status(400).json({
         message:
-          "Invalid date format. Please use 'MMMM DD' or provide a valid date.",
+          "Invalid date format. Please use 'MMMM DD, YYYY' or 'YYYY-MM-DD'.",
       });
     }
 
     // Get the offset for the selected timezone
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Properly format date and time to ISO 8601 format with timezone
+    // Properly format the time to ISO 8601 format with timezone
     const formattedTime = moment(time, "h:mm A").format("HH:mm:ss");
     const selectedSlot = `${fullDate.format(
       "YYYY-MM-DD"
@@ -243,13 +247,10 @@ exports.setappointment = async (req, res) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM`, // Replace with your actual token
+          Authorization: `Bearer YOUR_AUTH_TOKEN`, // Replace with your actual token
         },
       }
     );
-
-    console.log(response);
-    console.log(response.data);
 
     if (response.status === 200) {
       res.status(200).json({
