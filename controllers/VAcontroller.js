@@ -174,6 +174,8 @@ const fetchFirstPromoterData = async (email) => {
   }
 };
 
+const moment = require("moment-timezone");
+
 const getOffsetForTimeZone = (zone) => {
   const offsetMinutes = moment.tz(zone).utcOffset();
   const hours = Math.abs(Math.floor(offsetMinutes / 60));
@@ -188,15 +190,16 @@ exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, timezone } = req.body;
 
-    // Log all the incoming variables
-    console.log("Received Data:");
-    console.log("Date:", date);
-    console.log("Time:", time);
-    console.log("First Name:", fname);
-    console.log("Last Name:", lname);
-    console.log("Email:", email);
-    console.log("Phone:", phone);
-    console.log("Timezone:", timezone);
+    // Log the received values
+    console.log("Received Data:", {
+      date,
+      time,
+      fname,
+      lname,
+      email,
+      phone,
+      timezone,
+    });
 
     const selectedTimezone = timezone || "America/Chicago";
 
@@ -208,12 +211,14 @@ exports.setappointment = async (req, res) => {
     }
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
-    const dateTimeOnly = time.split(/[-+]\d{2}:\d{2}/)[0];
-    const selectedSlot = `${date}T${dateTimeOnly}${timeZoneOffset}`;
 
-    // Log the formatted slot and timezone
-    console.log("Selected Slot:", selectedSlot);
-    console.log("Selected Timezone:", selectedTimezone);
+    // Properly format date and time to ISO 8601 format
+    const selectedSlot = `${moment(date, "MMMM DD, YYYY").format(
+      "YYYY-MM-DD"
+    )}T${moment(time, ["h:mm A"]).format("HH:mm:ss")}${timeZoneOffset}`;
+
+    // Log the formatted values
+    console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
       calendarId: "tYBftnzoLm0YUHCGfGfD",
@@ -225,13 +230,16 @@ exports.setappointment = async (req, res) => {
       lname,
     };
 
+    // Log the final appointment data payload
+    console.log("Final Payload:", appointmentData);
+
     const response = await axios.post(
       "https://rest.gohighlevel.com/v1/appointments/",
       appointmentData,
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM`, // Replace with your actual token
+          Authorization: `Bearer <Your Token>`, // Replace with your actual token
         },
       }
     );
@@ -249,9 +257,11 @@ exports.setappointment = async (req, res) => {
     }
   } catch (error) {
     console.error("Error setting appointment:", error);
+
+    // Reduce the size of the error response
     res.status(500).json({
       message: "Internal server error while setting appointment",
-      error: error.message,
+      error: error.message, // only send error message instead of full error stack
     });
   }
 };
