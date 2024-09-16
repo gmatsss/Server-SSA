@@ -225,13 +225,13 @@ exports.setappointment = async (req, res) => {
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
-      calendarId: "tYBftnzoLm0YUHCGfGfD", // your calendarId
+      calendarId: "tYBftnzoLm0YUHCGfGfD",
       selectedTimezone,
       selectedSlot,
       email,
       phone,
-      fname,
-      lname,
+      firstName: fname,
+      lastName: lname,
     };
 
     // Log the final appointment data payload
