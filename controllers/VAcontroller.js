@@ -174,8 +174,6 @@ const fetchFirstPromoterData = async (email) => {
   }
 };
 
-const moment = require("moment-timezone");
-
 const getOffsetForTimeZone = (zone) => {
   const offsetMinutes = moment.tz(zone).utcOffset();
   const hours = Math.abs(Math.floor(offsetMinutes / 60));
