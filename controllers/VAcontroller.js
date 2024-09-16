@@ -207,18 +207,26 @@ exports.setappointment = async (req, res) => {
       });
     }
 
+    // Add current year if the date doesn't include it
+    const currentYear = new Date().getFullYear();
+    const fullDate = moment(`${date} ${currentYear}`, "MMMM DD YYYY");
+
+    // Check if the date is valid
+    if (!fullDate.isValid()) {
+      return res.status(400).json({
+        message:
+          "Invalid date format. Please use 'MMMM DD' or provide a valid date.",
+      });
+    }
+
     // Get the offset for the selected timezone
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
     // Properly format date and time to ISO 8601 format with timezone
-    const formattedDate = moment.tz(
-      `${date} ${time}`,
-      ["MMMM DD, YYYY h:mm A"],
-      selectedTimezone
-    );
-    const selectedSlot = formattedDate.format(
-      `YYYY-MM-DDTHH:mm:ss${timeZoneOffset}`
-    );
+    const formattedTime = moment(time, "h:mm A").format("HH:mm:ss");
+    const selectedSlot = `${fullDate.format(
+      "YYYY-MM-DD"
+    )}T${formattedTime}${timeZoneOffset}`;
 
     // Log the formatted values
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
@@ -248,6 +256,8 @@ exports.setappointment = async (req, res) => {
     );
 
     console.log(response);
+    console.log(response.data);
+
     if (response.status === 200) {
       res.status(200).json({
         message: "Appointment set successfully",
