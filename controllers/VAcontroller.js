@@ -198,21 +198,27 @@ exports.setappointment = async (req, res) => {
       phone,
     });
 
-    const selectedTimezone = "America/Chicago";
+    const selectedTimezone = "America/Chicago"; // Set the timezone
 
+    // Ensure all required fields are present
     if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
-        message:
-          "Missing required fields: date, time, name, email, phone, or timezone",
+        message: "Missing required fields: date, time, name, email, or phone",
       });
     }
 
+    // Get the offset for the selected timezone
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Properly format date and time to ISO 8601 format
-    const selectedSlot = `${moment(date, "MMMM DD, YYYY").format(
-      "YYYY-MM-DD"
-    )}T${moment(time, ["h:mm A"]).format("HH:mm:ss")}${timeZoneOffset}`;
+    // Properly format date and time to ISO 8601 format with timezone
+    const formattedDate = moment.tz(
+      `${date} ${time}`,
+      ["MMMM DD, YYYY h:mm A"],
+      selectedTimezone
+    );
+    const selectedSlot = formattedDate.format(
+      `YYYY-MM-DDTHH:mm:ss${timeZoneOffset}`
+    );
 
     // Log the formatted values
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
