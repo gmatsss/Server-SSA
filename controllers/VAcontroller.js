@@ -236,7 +236,7 @@ exports.setappointment = async (req, res) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer <Your Token>`, // Replace with your actual token
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM`, // Replace with your actual token
         },
       }
     );
