@@ -184,16 +184,28 @@ const getOffsetForTimeZone = (zone) => {
   )}:${String(minutes).padStart(2, "0")}`;
 };
 
+// Helper function to parse the time in multiple formats
+const parseTime = (time) => {
+  const formats = ["HH:mm", "h:mm A", "H:mm", "hh:mm A"]; // Accepting 24-hour and 12-hour formats with AM/PM
+  let parsedTime = null;
+
+  for (const format of formats) {
+    parsedTime = moment(time, format, true);
+    if (parsedTime.isValid()) {
+      return parsedTime;
+    }
+  }
+
+  return null; // Return null if none of the formats match
+};
+
 exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone } = req.body;
-
-    // Log the received values for clarity
     console.log("Received Data:", { date, time, fname, lname, email, phone });
 
-    const selectedTimezone = "America/Chicago"; // Setting the timezone
+    const selectedTimezone = "America/Chicago";
 
-    // Ensure all required fields are present
     if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
         message: "Missing required fields: date, time, name, email, or phone",
@@ -202,12 +214,9 @@ exports.setappointment = async (req, res) => {
 
     let fullDate;
 
-    // Check the date format and parse accordingly
     if (moment(date, "MMMM DD, YYYY", true).isValid()) {
-      // If date is in 'MMMM DD, YYYY' format
       fullDate = moment(date, "MMMM DD, YYYY");
     } else if (moment(date, "YYYY-MM-DD", true).isValid()) {
-      // If date is in 'YYYY-MM-DD' format
       fullDate = moment(date, "YYYY-MM-DD");
     } else {
       return res.status(400).json({
@@ -216,16 +225,24 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    // Get the offset for the selected timezone
+    // Parse the time using the helper function
+    const parsedTime = parseTime(time);
+
+    if (!parsedTime) {
+      return res.status(400).json({
+        message:
+          "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '17:00', etc.",
+      });
+    }
+
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Properly format the time to ISO 8601 format with timezone
-    const formattedTime = moment(time, "h:mm A").format("HH:mm:ss");
+    // Format time to 'HH:mm:ss'
+    const formattedTime = parsedTime.format("HH:mm:ss");
     const selectedSlot = `${fullDate.format(
       "YYYY-MM-DD"
     )}T${formattedTime}${timeZoneOffset}`;
 
-    // Log the formatted values
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
@@ -238,7 +255,6 @@ exports.setappointment = async (req, res) => {
       lastName: lname,
     };
 
-    // Log the final appointment data payload
     console.log("Final Payload:", appointmentData);
 
     const response = await axios.post(
@@ -248,7 +264,7 @@ exports.setappointment = async (req, res) => {
         headers: {
           "Content-Type": "application/json",
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM", // Replace with your actual token
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6Inc4aHVUREQ1QzhxQVB0RmJZNW5rIiwiY29tcGFueV9pZCI6IkkxTFUyYW1aSHpQWWo2YUdXMlRCIiwidmVyc2lvbiI6MSwiaWF0IjoxNjk1ODk0NzA2ODMwLCJzdWIiOiJ1c2VyX2lkIn0.wtUxGmmuzSI4V8V3ofam4fWatNsa_0HitDUcE-GSUbM",
         },
       }
     );
@@ -266,8 +282,6 @@ exports.setappointment = async (req, res) => {
     }
   } catch (error) {
     console.error("Error setting appointment:", error);
-
-    // Send a simplified error message
     res.status(500).json({
       message: "Internal server error while setting appointment",
       error: error.message,
