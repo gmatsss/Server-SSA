@@ -8,16 +8,15 @@ const oAuth2Client = new google.auth.OAuth2(
   "https://node.customadesign.info/SSA/gmb/oauth2callback"
 );
 
-// Function to generate and redirect to the OAuth2 URL
 const getAuthUrl = (req, res) => {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
+    prompt: "consent",
     scope: ["https://www.googleapis.com/auth/business.manage"],
   });
   res.redirect(authUrl);
 };
 
-// OAuth callback to handle the authorization code and exchange it for tokens
 const handleOAuth2Callback = async (req, res) => {
   const code = req.query.code;
   if (!code) {
@@ -28,8 +27,16 @@ const handleOAuth2Callback = async (req, res) => {
     const { tokens } = await oAuth2Client.getToken(code); // Exchange code for tokens
     oAuth2Client.setCredentials(tokens);
 
+    // Log the entire token response
+    console.log("OAuth tokens:", tokens);
+
     const accountId = "107840789358849838159"; // You can make this dynamic if needed
     const locationId = "6810740176949048115"; // You can make this dynamic if needed
+
+    if (!tokens.refresh_token) {
+      console.error("No refresh token received from OAuth response.");
+      return res.status(400).send("Failed to obtain refresh token.");
+    }
 
     // Save the refresh token to the database using the TokenGMB model
     await TokenGMB.findOneAndUpdate(
