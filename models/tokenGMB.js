@@ -1,8 +1,8 @@
-// models/gmbToken.js
+// models/tokenGMB.js
 
 const mongoose = require("mongoose");
 
-const GMBToken = new mongoose.Schema({
+const tokenGMBSchema = new mongoose.Schema({
   accountId: {
     type: String,
     required: true,
@@ -22,4 +22,4 @@ const GMBToken = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("GMBToken", GMBToken);
+module.exports = mongoose.model("TokenGMB", tokenGMBSchema);

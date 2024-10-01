@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const GMBToken = require("../models/gmbToken");
+const TokenGMB = require("../models/tokenGMB"); // Import the renamed model
 require("dotenv").config();
 
 const oAuth2Client = new google.auth.OAuth2(
@@ -31,8 +31,8 @@ const handleOAuth2Callback = async (req, res) => {
     const accountId = "107840789358849838159"; // You can make this dynamic if needed
     const locationId = "6810740176949048115"; // You can make this dynamic if needed
 
-    // Save the refresh token to the database using the GMBToken model
-    await GMBToken.findOneAndUpdate(
+    // Save the refresh token to the database using the TokenGMB model
+    await TokenGMB.findOneAndUpdate(
       { accountId: accountId }, // Find the document with the same accountId
       {
         refreshgmbToken: tokens.refresh_token,
@@ -58,8 +58,8 @@ const checkNewPosts = async (req, res) => {
   const locationId = "6810740176949048115"; // The location ID from your image
 
   try {
-    // Retrieve the refresh token from the database using the GMBToken model
-    const tokenDoc = await gmbToken.findOne({ accountId: accountId });
+    // Retrieve the refresh token from the database using the TokenGMB model
+    const tokenDoc = await TokenGMB.findOne({ accountId: accountId });
 
     if (!tokenDoc) {
       return res.status(400).json({
