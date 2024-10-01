@@ -43,7 +43,6 @@ const handleOAuth2Callback = async (req, res) => {
   }
 };
 
-// Ensure we have valid credentials or initiate OAuth flow
 const ensureAuthenticated = async (req, res, next) => {
   if (!storedRefreshToken) {
     // If no refresh token is stored, redirect to OAuth flow and capture original URL
