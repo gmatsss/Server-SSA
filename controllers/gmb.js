@@ -47,7 +47,7 @@ const handleOAuth2Callback = async (req, res) => {
 const ensureAuthenticated = async (req, res, next) => {
   if (!storedRefreshToken) {
     // If no refresh token is stored, redirect to OAuth flow and capture original URL
-    return res.redirect(`/gmb/auth?redirect=${req.originalUrl}`);
+    return res.redirect(`/SSA/gmb/auth?redirect=${req.originalUrl}`);
   }
 
   try {
