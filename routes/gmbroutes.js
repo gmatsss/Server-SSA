@@ -4,7 +4,7 @@ const {
   getAuthUrl,
   handleOAuth2Callback,
   checkNewPosts,
-} = require("../controller/gmb");
+} = require("../controllers/gmb");
 
 // Route to start the OAuth2 flow
 router.get("/auth", getAuthUrl);
