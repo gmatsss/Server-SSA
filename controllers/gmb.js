@@ -44,17 +44,39 @@ const checkNewPosts = async (req, res) => {
   const accountId = "107840789358849838159"; // The account ID from your image
   const locationId = "6810740176949048115"; // The location ID from your image
 
+  // Ensure the refresh token is available before making the API call
+  if (!storedRefreshToken) {
+    return res.status(400).json({
+      message: "No stored refresh token. Please authenticate first.",
+    });
+  }
+
   // Set the credentials using the stored refresh token
   oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
 
   try {
     // Use Google My Business API to fetch local posts
     const myBusiness = google.mybusinessaccountmanagement("v1"); // Ensure correct API version
+
+    // Log that the request is starting
+    console.log(
+      "Fetching local posts for account:",
+      accountId,
+      "and location:",
+      locationId
+    );
+
     const response = await myBusiness.accounts.locations.localPosts.list({
       parent: `accounts/${accountId}/locations/${locationId}`,
     });
 
-    const posts = response.data.localPosts || [];
+    // Log the full API response to understand the structure
+    console.log("API Response:", response);
+
+    // Check if response.data and localPosts exist
+    const posts =
+      response.data && response.data.localPosts ? response.data.localPosts : [];
+
     if (posts.length > 0) {
       res.status(200).json({
         message: "New posts found",
@@ -69,6 +91,20 @@ const checkNewPosts = async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching posts:", error.message);
+
+    // Log the full error object for better debugging
+    console.error(error);
+
+    // If the error is token-related, provide a clear message
+    if (
+      error.message.includes("invalid_grant") ||
+      error.message.includes("unauthorized")
+    ) {
+      return res.status(401).json({
+        message: "Invalid or expired token. Please re-authenticate.",
+      });
+    }
+
     res
       .status(500)
       .json({ message: "Error fetching posts", error: error.message });
