@@ -58,31 +58,37 @@ const ensureAuthenticated = async (req, res) => {
   return true;
 };
 
-// Function to check for new posts on Google My Business
 const checkNewPosts = async (req, res) => {
-  const locationId = process.env.LOCATION_ID;
-  const accountId = process.env.ACCOUNT_ID;
+  const locationId = "6810740176949048115"; // Your location ID
+  const accountId = "107840789358849838159"; // Your account ID
 
   try {
-    // Ensure authentication before proceeding
+    console.log("Route hit, checking authentication...");
     const isAuthenticated = await ensureAuthenticated(req, res);
 
-    // If not authenticated (i.e., redirected for OAuth), stop execution
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      console.log("Not authenticated, redirecting for auth.");
+      return;
+    }
 
-    // Initialize My Business API
     const myBusiness = google.mybusinessaccountmanagement({
       version: "v1",
       auth: oAuth2Client,
     });
 
-    // Fetch the posts
+    console.log(
+      "Fetching posts for location and account:",
+      locationId,
+      accountId
+    );
+
     const response = await myBusiness.accounts.locations.localPosts.list({
       parent: `accounts/${accountId}/locations/${locationId}`,
     });
 
-    // Handle the response
     const posts = response.data.localPosts || [];
+    console.log("Posts found:", posts);
+
     if (posts.length > 0) {
       res.status(200).json({
         message: "New posts found",
