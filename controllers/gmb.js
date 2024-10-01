@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const gmbToken = require("../models/gmbToken");
+const GMBToken = require("../models/gmbToken");
 require("dotenv").config();
 
 const oAuth2Client = new google.auth.OAuth2(
