@@ -2,7 +2,7 @@
 
 const mongoose = require("mongoose");
 
-const gmbtokenSchema = new mongoose.Schema({
+const GMBToken = new mongoose.Schema({
   accountId: {
     type: String,
     required: true,
@@ -22,4 +22,4 @@ const gmbtokenSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("GMBToken", gmbtokenSchema);
+module.exports = mongoose.model("GMBToken", GMBToken);
