@@ -44,43 +44,36 @@ const handleOAuth2Callback = async (req, res) => {
 };
 
 // Ensure we have valid credentials or initiate OAuth flow
-const ensureAuthenticated = async (req, res) => {
+const ensureAuthenticated = async (req, res, next) => {
   if (!storedRefreshToken) {
     // If no refresh token is stored, redirect to OAuth flow and capture original URL
     return res.redirect(`/gmb/auth?redirect=${req.originalUrl}`);
   }
 
-  // If refresh token is stored, use it to get a new access token
-  oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
-  const { token } = await oAuth2Client.getAccessToken();
-  oAuth2Client.setCredentials({ access_token: token });
+  try {
+    // If refresh token is stored, use it to get a new access token
+    oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
+    const { token } = await oAuth2Client.getAccessToken();
+    oAuth2Client.setCredentials({ access_token: token });
 
-  return true;
+    // Continue to the next middleware or route handler
+    next();
+  } catch (error) {
+    console.error("Error ensuring authentication:", error);
+    res.status(500).send("Authentication failed.");
+  }
 };
 
+// Check new posts route, this will run after authentication is ensured
 const checkNewPosts = async (req, res) => {
   const locationId = "6810740176949048115"; // Your location ID
   const accountId = "107840789358849838159"; // Your account ID
 
   try {
-    console.log("Route hit, checking authentication...");
-    const isAuthenticated = await ensureAuthenticated(req, res);
-
-    if (!isAuthenticated) {
-      console.log("Not authenticated, redirecting for auth.");
-      return;
-    }
-
     const myBusiness = google.mybusinessaccountmanagement({
       version: "v1",
       auth: oAuth2Client,
     });
-
-    console.log(
-      "Fetching posts for location and account:",
-      locationId,
-      accountId
-    );
 
     const response = await myBusiness.accounts.locations.localPosts.list({
       parent: `accounts/${accountId}/locations/${locationId}`,
@@ -113,4 +106,5 @@ module.exports = {
   getAuthUrl,
   handleOAuth2Callback,
   checkNewPosts,
+  ensureAuthenticated,
 };

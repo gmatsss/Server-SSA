@@ -4,15 +4,16 @@ const {
   getAuthUrl,
   handleOAuth2Callback,
   checkNewPosts,
+  ensureAuthenticated,
 } = require("../controllers/gmb");
 
-// Route to start the OAuth2 flow
+// Route to initiate the OAuth process
 router.get("/auth", getAuthUrl);
 
-// Route to handle the OAuth2 callback (Google will redirect here)
+// OAuth2 callback route
 router.get("/oauth2callback", handleOAuth2Callback);
 
-// Route to check for new GMB posts
-router.get("/check-new-posts", checkNewPosts);
+// Route to check new posts (ensures authentication first)
+router.get("/check-new-posts", ensureAuthenticated, checkNewPosts);
 
 module.exports = router;
