@@ -35,22 +35,49 @@ const handleOAuth2Callback = async (req, res) => {
   }
 };
 
-const checkNewPosts = async (req, res) => {
-  const locationId = process.env.LOCATION_ID;
-
+const ensureAuthenticated = async (req, res) => {
   if (!storedRefreshToken) {
-    return res
-      .status(400)
-      .send("No refresh token stored. Please authenticate first.");
+    // If no refresh token is stored, redirect to OAuth flow
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: ["https://www.googleapis.com/auth/business.manage"],
+    });
+    res.redirect(authUrl); // Send the user to Google for authentication
+    return false;
   }
 
+  // If refresh token is stored, use it to get a new access token
   oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
+  const { token } = await oAuth2Client.getAccessToken();
+  oAuth2Client.setCredentials({ access_token: token });
+
+  return true;
+};
+
+// Function to check for new posts on Google My Business
+const checkNewPosts = async (req, res) => {
+  const locationId = process.env.LOCATION_ID;
+  const accountId = process.env.ACCOUNT_ID;
 
   try {
-    const response = await myBusiness.accounts.locations.localPosts.list({
-      parent: `accounts/${process.env.ACCOUNT_ID}/locations/${locationId}`,
+    // Ensure authentication before proceeding
+    const isAuthenticated = await ensureAuthenticated(req, res);
+
+    // If not authenticated (i.e., redirected for OAuth), stop execution
+    if (!isAuthenticated) return;
+
+    // Initialize My Business API
+    const myBusiness = google.mybusinessaccountmanagement({
+      version: "v1",
+      auth: oAuth2Client,
     });
 
+    // Fetch the posts
+    const response = await myBusiness.accounts.locations.localPosts.list({
+      parent: `accounts/${accountId}/locations/${locationId}`,
+    });
+
+    // Handle the response
     const posts = response.data.localPosts || [];
     if (posts.length > 0) {
       res.status(200).json({
