@@ -11,7 +11,7 @@ const oAuth2Client = new google.auth.OAuth2(
 const getAuthUrl = (req, res) => {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    // prompt: "consent",
     scope: ["https://www.googleapis.com/auth/business.manage"],
   });
   res.redirect(authUrl);
@@ -24,7 +24,7 @@ const handleOAuth2Callback = async (req, res) => {
   }
 
   try {
-    const { tokens } = await oAuth2Client.getToken(code); // Exchange code for tokens
+    const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
 
     // Log the entire token response
@@ -59,7 +59,6 @@ const handleOAuth2Callback = async (req, res) => {
   }
 };
 
-// Function to check for new GMB posts
 const checkNewPosts = async (req, res) => {
   const accountId = "107840789358849838159"; // The account ID from your image
   const locationId = "6810740176949048115"; // The location ID from your image
@@ -69,6 +68,7 @@ const checkNewPosts = async (req, res) => {
     const tokenDoc = await TokenGMB.findOne({ accountId: accountId });
 
     if (!tokenDoc) {
+      console.error("No stored refresh token for account:", accountId);
       return res.status(400).json({
         message: "No stored refresh token. Please authenticate first.",
       });
@@ -88,18 +88,30 @@ const checkNewPosts = async (req, res) => {
       locationId
     );
 
+    // Perform the API call to fetch the posts
     const response = await myBusiness.accounts.locations.localPosts.list({
       parent: `accounts/${accountId}/locations/${locationId}`,
     });
 
-    // Log the full API response to understand the structure
-    console.log("API Response:", response);
+    // Log the full API response to see its structure
+    console.log("Full API Response:", JSON.stringify(response, null, 2));
 
-    // Check if response.data and localPosts exist
-    const posts =
-      response.data && response.data.localPosts ? response.data.localPosts : [];
+    // Check if response.data exists before accessing localPosts
+    if (!response.data) {
+      console.error("No data found in the API response");
+      return res
+        .status(500)
+        .json({ message: "No data found in the API response" });
+    }
+
+    // Log what response.data contains
+    console.log("Response data:", JSON.stringify(response.data, null, 2));
+
+    // Check if localPosts exists in response.data
+    const posts = response.data.localPosts ? response.data.localPosts : [];
 
     if (posts.length > 0) {
+      console.log("Posts found:", posts.length);
       res.status(200).json({
         message: "New posts found",
         posts: posts.map((post) => ({
@@ -109,13 +121,12 @@ const checkNewPosts = async (req, res) => {
         })),
       });
     } else {
+      console.log("No new posts found");
       res.status(200).json({ message: "No new posts." });
     }
   } catch (error) {
     console.error("Error fetching posts:", error.message);
-
-    // Log the full error object for better debugging
-    console.error(error);
+    console.error("Full error object:", error);
 
     // If the error is token-related, provide a clear message
     if (
