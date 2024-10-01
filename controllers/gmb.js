@@ -4,7 +4,7 @@ require("dotenv").config();
 const oAuth2Client = new google.auth.OAuth2(
   "1078804589614-4rfmn9rovb8346s2g7ln2bgarlarb7g9.apps.googleusercontent.com",
   "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",
-  "http://3.80.93.16:8002/gmb/oauth2callback"
+  "https://node.customadesign.info/SSA/gmb/oauth2callback"
 );
 
 let storedRefreshToken = null;
