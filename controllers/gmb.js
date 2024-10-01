@@ -9,16 +9,21 @@ const oAuth2Client = new google.auth.OAuth2(
 
 let storedRefreshToken = null;
 
-const getAuthUrl = (req, res) => {
+// Generate auth URL with state
+const getAuthUrl = (req, res, state) => {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
     scope: ["https://www.googleapis.com/auth/business.manage"],
+    state: state || "/", // Store state to redirect back to
   });
   res.redirect(authUrl);
 };
 
+// OAuth2 callback
 const handleOAuth2Callback = async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state || "/"; // Retrieve state (where to redirect after auth)
+
   if (!code) {
     return res.status(400).send("Authorization code not found");
   }
@@ -28,44 +33,37 @@ const handleOAuth2Callback = async (req, res) => {
     oAuth2Client.setCredentials(tokens);
     storedRefreshToken = tokens.refresh_token;
     console.log("Refresh Token:", storedRefreshToken);
-    res.status(200).send("Authorization successful, refresh token stored!");
+
+    // Redirect back to the original page (state)
+    res.redirect(state);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to exchange authorization code for tokens.");
   }
 };
 
-const ensureAuthenticated = async (req, res) => {
+// Ensure authentication
+const ensureAuthenticated = async (req, res, next) => {
   if (!storedRefreshToken) {
-    // If no refresh token is stored, redirect to OAuth flow
-    const authUrl = oAuth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope: ["https://www.googleapis.com/auth/business.manage"],
-    });
-    res.redirect(authUrl); // Send the user to Google for authentication
-    return false;
+    // No refresh token, redirect to OAuth flow
+    const originalUrl = req.originalUrl; // Save the original URL (e.g., /check-new-posts)
+    return getAuthUrl(req, res, originalUrl); // Redirect to OAuth and pass original URL as state
   }
 
-  // If refresh token is stored, use it to get a new access token
+  // Use the refresh token to get an access token
   oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
   const { token } = await oAuth2Client.getAccessToken();
   oAuth2Client.setCredentials({ access_token: token });
 
-  return true;
+  next(); // Continue to the next middleware or function
 };
 
-// Function to check for new posts on Google My Business
+// Check for new posts on GMB
 const checkNewPosts = async (req, res) => {
   const locationId = process.env.LOCATION_ID;
   const accountId = process.env.ACCOUNT_ID;
 
   try {
-    // Ensure authentication before proceeding
-    const isAuthenticated = await ensureAuthenticated(req, res);
-
-    // If not authenticated (i.e., redirected for OAuth), stop execution
-    if (!isAuthenticated) return;
-
     // Initialize My Business API
     const myBusiness = google.mybusinessaccountmanagement({
       version: "v1",
@@ -100,7 +98,7 @@ const checkNewPosts = async (req, res) => {
 };
 
 module.exports = {
-  getAuthUrl,
   handleOAuth2Callback,
   checkNewPosts,
+  ensureAuthenticated,
 };
