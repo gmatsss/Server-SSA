@@ -1,4 +1,5 @@
 const { google } = require("googleapis");
+const gmbToken = require("../models/gmbToken");
 require("dotenv").config();
 
 const oAuth2Client = new google.auth.OAuth2(
@@ -6,8 +7,6 @@ const oAuth2Client = new google.auth.OAuth2(
   "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",
   "https://node.customadesign.info/SSA/gmb/oauth2callback"
 );
-
-let storedRefreshToken = null; // You might want to persist this in a database or file
 
 // Function to generate and redirect to the OAuth2 URL
 const getAuthUrl = (req, res) => {
@@ -28,8 +27,22 @@ const handleOAuth2Callback = async (req, res) => {
   try {
     const { tokens } = await oAuth2Client.getToken(code); // Exchange code for tokens
     oAuth2Client.setCredentials(tokens);
-    storedRefreshToken = tokens.refresh_token; // Store refresh token
-    console.log("Refresh Token:", storedRefreshToken);
+
+    const accountId = "107840789358849838159"; // You can make this dynamic if needed
+    const locationId = "6810740176949048115"; // You can make this dynamic if needed
+
+    // Save the refresh token to the database using the GMBToken model
+    await GMBToken.findOneAndUpdate(
+      { accountId: accountId }, // Find the document with the same accountId
+      {
+        refreshgmbToken: tokens.refresh_token,
+        locationId: locationId,
+        updatedAt: new Date(),
+      }, // Update the token
+      { upsert: true, new: true } // Insert if it doesn't exist, return the updated document
+    );
+
+    console.log("Refresh Token stored in DB:", tokens.refresh_token);
 
     // Redirect back to the check-new-posts route after successful authentication
     res.redirect("/SSA/gmb/check-new-posts");
@@ -39,22 +52,24 @@ const handleOAuth2Callback = async (req, res) => {
   }
 };
 
+// Function to check for new GMB posts
 const checkNewPosts = async (req, res) => {
-  // Replace these values with the actual ones from the images
   const accountId = "107840789358849838159"; // The account ID from your image
   const locationId = "6810740176949048115"; // The location ID from your image
 
-  // Ensure the refresh token is available before making the API call
-  if (!storedRefreshToken) {
-    return res.status(400).json({
-      message: "No stored refresh token. Please authenticate first.",
-    });
-  }
-
-  // Set the credentials using the stored refresh token
-  oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
-
   try {
+    // Retrieve the refresh token from the database using the GMBToken model
+    const tokenDoc = await gmbToken.findOne({ accountId: accountId });
+
+    if (!tokenDoc) {
+      return res.status(400).json({
+        message: "No stored refresh token. Please authenticate first.",
+      });
+    }
+
+    // Set the credentials using the stored refresh token
+    oAuth2Client.setCredentials({ refresh_token: tokenDoc.refreshgmbToken });
+
     // Use Google My Business API to fetch local posts
     const myBusiness = google.mybusinessaccountmanagement("v1"); // Ensure correct API version
 
