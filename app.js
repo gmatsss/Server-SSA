@@ -73,7 +73,6 @@ app.use(passport.session());
 const initializePassport = require("./middleware/passport");
 initializePassport(passport);
 
-// Importing and using routes
 const testRoutes = require("./routes/test");
 app.use("/", testRoutes);
 const User = require("./routes/User");
@@ -88,6 +87,8 @@ const Admin = require("./routes/Admin");
 app.use("/Admin", Admin);
 const twilioRoutes = require("./routes/twilio");
 app.use("/twilio", twilioRoutes);
+const gmbroutes = require("./routes/gmbroutes");
+app.use("/gmb", gmbroutes);
 
 const port = process.env.PORT || 8001;
 
