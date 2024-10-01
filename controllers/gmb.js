@@ -32,25 +32,15 @@ const handleOAuth2Callback = async (req, res) => {
     console.log("Refresh Token:", storedRefreshToken);
 
     // Redirect back to the check-new-posts route after successful authentication
-    res.redirect("/check-new-posts");
+    res.redirect("/SSA/gmb/check-new-posts");
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to exchange authorization code for tokens.");
   }
 };
 
-// Function to check for new Google My Business posts
 const checkNewPosts = async (req, res) => {
   const locationId = process.env.LOCATION_ID;
-
-  // If there's no stored refresh token, start OAuth flow
-  if (!storedRefreshToken) {
-    const authUrl = oAuth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope: ["https://www.googleapis.com/auth/business.manage"],
-    });
-    return res.redirect(authUrl); // Redirect to OAuth2 consent page
-  }
 
   // Set the credentials using the stored refresh token
   oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
