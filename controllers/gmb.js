@@ -6,17 +6,20 @@ const oAuth2Client = new google.auth.OAuth2(
   "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",
   "https://node.customadesign.info/SSA/gmb/oauth2callback"
 );
-
 let storedRefreshToken = null;
 
-const getAuthUrl = (req, res) => {
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: ["https://www.googleapis.com/auth/business.manage"],
-  });
-  res.redirect(authUrl);
+// Helper function to refresh token if necessary
+const refreshAccessTokenIfNeeded = async () => {
+  if (!storedRefreshToken) {
+    throw new Error("No refresh token stored. Please authenticate first.");
+  }
+
+  oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
+  const { credentials } = await oAuth2Client.getAccessToken();
+  return credentials.access_token;
 };
 
+// Handle OAuth2 callback
 const handleOAuth2Callback = async (req, res) => {
   const code = req.query.code;
   if (!code) {
@@ -26,7 +29,7 @@ const handleOAuth2Callback = async (req, res) => {
   try {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
-    storedRefreshToken = tokens.refresh_token;
+    storedRefreshToken = tokens.refresh_token || storedRefreshToken;
     console.log("Refresh Token:", storedRefreshToken);
     res.status(200).send("Authorization successful, refresh token stored!");
   } catch (error) {
@@ -35,18 +38,23 @@ const handleOAuth2Callback = async (req, res) => {
   }
 };
 
+// Fetch posts after ensuring authentication
 const checkNewPosts = async (req, res) => {
   const locationId = process.env.LOCATION_ID;
 
-  if (!storedRefreshToken) {
-    return res
-      .status(400)
-      .send("No refresh token stored. Please authenticate first.");
-  }
-
-  oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
-
   try {
+    // Step 1: Ensure access token is available or refresh it
+    const accessToken = await refreshAccessTokenIfNeeded();
+
+    // Step 2: Set the credentials to use the newly refreshed token
+    oAuth2Client.setCredentials({ access_token: accessToken });
+
+    // Step 3: Proceed to fetch posts
+    const myBusiness = google.mybusiness({
+      version: "v4",
+      auth: oAuth2Client,
+    });
+
     const response = await myBusiness.accounts.locations.localPosts.list({
       parent: `accounts/${process.env.ACCOUNT_ID}/locations/${locationId}`,
     });
@@ -70,6 +78,15 @@ const checkNewPosts = async (req, res) => {
       .status(500)
       .json({ message: "Error fetching posts", error: error.message });
   }
+};
+
+// Route to trigger OAuth2 flow and redirect to Google's consent screen
+const getAuthUrl = (req, res) => {
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: ["https://www.googleapis.com/auth/business.manage"],
+  });
+  res.redirect(authUrl);
 };
 
 module.exports = {
