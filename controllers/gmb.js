@@ -40,7 +40,9 @@ const handleOAuth2Callback = async (req, res) => {
 };
 
 const checkNewPosts = async (req, res) => {
-  const locationId = process.env.LOCATION_ID;
+  // Replace these values with the actual ones from the images
+  const accountId = "107840789358849838159"; // The account ID from your image
+  const locationId = "6810740176949048115"; // The location ID from your image
 
   // Set the credentials using the stored refresh token
   oAuth2Client.setCredentials({ refresh_token: storedRefreshToken });
@@ -49,7 +51,7 @@ const checkNewPosts = async (req, res) => {
     // Use Google My Business API to fetch local posts
     const myBusiness = google.mybusinessaccountmanagement("v1"); // Ensure correct API version
     const response = await myBusiness.accounts.locations.localPosts.list({
-      parent: `accounts/${process.env.ACCOUNT_ID}/locations/${locationId}`,
+      parent: `accounts/${accountId}/locations/${locationId}`,
     });
 
     const posts = response.data.localPosts || [];
