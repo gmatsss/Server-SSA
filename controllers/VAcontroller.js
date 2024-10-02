@@ -201,8 +201,9 @@ const parseTime = (time) => {
 
 exports.setappointment = async (req, res) => {
   try {
-    const { date, time, fname, lname, email, phone } = req.body;
+    const { date, time, fname, lname, email, phone, Fname } = req.body;
     console.log(req.body);
+    console.log(Fname);
     console.log("Received Data:", { date, time, fname, lname, email, phone });
 
     const selectedTimezone = "America/Chicago";
