@@ -87,8 +87,6 @@ const Admin = require("./routes/Admin");
 app.use("/Admin", Admin);
 const twilioRoutes = require("./routes/twilio");
 app.use("/twilio", twilioRoutes);
-const gmbroutes = require("./routes/gmbroutes");
-app.use("/gmb", gmbroutes);
 
 const port = process.env.PORT || 8001;
 
