@@ -199,26 +199,6 @@ const parseTime = (time) => {
   return null; // Return null if none of the formats match
 };
 
-// Helper function to parse natural language date input
-const parseDate = (dateString) => {
-  const parsedDate = moment(
-    dateString,
-    [
-      "MMMM D, YYYY", // "October 7, 2024"
-      "MMMM Do, YYYY", // "October 7th, 2024"
-      "MMMM D, YYYY", // "October seventh, two thousand twenty-four"
-      "YYYY-MM-DD", // "2024-10-07"
-    ],
-    true
-  );
-
-  if (!parsedDate.isValid()) {
-    return null;
-  }
-
-  return parsedDate;
-};
-
 exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, Fname } = req.body;
@@ -226,7 +206,7 @@ exports.setappointment = async (req, res) => {
     console.log(Fname);
     console.log("Received Data:", { date, time, fname, lname, email, phone });
 
-    const selectedTimezone = "America/Chicago"; // Timezone as per your requirement
+    const selectedTimezone = "America/Chicago";
 
     if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
@@ -234,42 +214,38 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    // Log the raw input data
-    console.log(`Raw date input: ${date}`);
-    console.log(`Raw time input: ${time}`);
+    let fullDate;
 
-    // Parse the natural language date
-    const fullDate = parseDate(date);
-    if (!fullDate) {
-      console.log("Date parsing failed");
+    if (moment(date, "MMMM DD, YYYY", true).isValid()) {
+      fullDate = moment(date, "MMMM DD, YYYY");
+    } else if (moment(date, "YYYY-MM-DD", true).isValid()) {
+      fullDate = moment(date, "YYYY-MM-DD");
+    } else {
       return res.status(400).json({
         message:
-          "Invalid date format. Please use formats like 'MMMM D, YYYY' or 'YYYY-MM-DD'.",
+          "Invalid date format. Please use 'MMMM DD, YYYY' or 'YYYY-MM-DD'.",
       });
     }
-    console.log(`Parsed date: ${fullDate.format("YYYY-MM-DD")}`);
 
     // Parse the time using the helper function
     const parsedTime = parseTime(time);
 
     if (!parsedTime) {
-      console.log("Time parsing failed");
       return res.status(400).json({
         message:
-          "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '9 AM', etc.",
+          "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '17:00', etc.",
       });
     }
-    console.log(`Parsed time: ${parsedTime.format("HH:mm:ss")}`);
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Combine date and time, and format it to ISO 8601 (e.g., '2024-10-07T09:00:00-05:00')
-    const selectedSlot = `${fullDate.format("YYYY-MM-DD")}T${parsedTime.format(
-      "HH:mm:ss"
-    )}${timeZoneOffset}`;
+    // Format time to 'HH:mm:ss'
+    const formattedTime = parsedTime.format("HH:mm:ss");
+    const selectedSlot = `${fullDate.format(
+      "YYYY-MM-DD"
+    )}T${formattedTime}${timeZoneOffset}`;
 
-    // Log the final converted values
-    console.log("Formatted Date-Time:", selectedSlot);
+    console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
       calendarId: "tYBftnzoLm0YUHCGfGfD",
