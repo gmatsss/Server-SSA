@@ -174,7 +174,6 @@ const fetchFirstPromoterData = async (email) => {
   }
 };
 
-//update
 const getOffsetForTimeZone = (zone) => {
   const offsetMinutes = moment.tz(zone).utcOffset();
   const hours = Math.abs(Math.floor(offsetMinutes / 60));
@@ -227,7 +226,7 @@ exports.setappointment = async (req, res) => {
     console.log(Fname);
     console.log("Received Data:", { date, time, fname, lname, email, phone });
 
-    const selectedTimezone = "America/Chicago";
+    const selectedTimezone = "America/Chicago"; // Timezone as per your requirement
 
     if (!date || !time || !fname || !lname || !email || !phone) {
       return res.status(400).json({
@@ -264,14 +263,13 @@ exports.setappointment = async (req, res) => {
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Format time to 'HH:mm:ss'
-    const formattedTime = parsedTime.format("HH:mm:ss");
-    const selectedSlot = `${fullDate.format(
-      "YYYY-MM-DD"
-    )}T${formattedTime}${timeZoneOffset}`;
+    // Combine date and time, and format it to ISO 8601 (e.g., '2024-10-07T09:00:00-05:00')
+    const selectedSlot = `${fullDate.format("YYYY-MM-DD")}T${parsedTime.format(
+      "HH:mm:ss"
+    )}${timeZoneOffset}`;
 
     // Log the final converted values
-    console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
+    console.log("Formatted Date-Time:", selectedSlot);
 
     const appointmentData = {
       calendarId: "tYBftnzoLm0YUHCGfGfD",
