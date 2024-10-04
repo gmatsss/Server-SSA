@@ -173,6 +173,8 @@ const fetchFirstPromoterData = async (email) => {
     console.log("Error with FirstPromoter request:", error);
   }
 };
+const moment = require("moment");
+const axios = require("axios");
 
 const getOffsetForTimeZone = (zone) => {
   const offsetMinutes = moment.tz(zone).utcOffset();
@@ -234,24 +236,32 @@ exports.setappointment = async (req, res) => {
       });
     }
 
+    // Log the raw input data
+    console.log(`Raw date input: ${date}`);
+    console.log(`Raw time input: ${time}`);
+
     // Parse the natural language date
     const fullDate = parseDate(date);
     if (!fullDate) {
+      console.log("Date parsing failed");
       return res.status(400).json({
         message:
           "Invalid date format. Please use formats like 'MMMM D, YYYY' or 'YYYY-MM-DD'.",
       });
     }
+    console.log(`Parsed date: ${fullDate.format("YYYY-MM-DD")}`);
 
     // Parse the time using the helper function
     const parsedTime = parseTime(time);
 
     if (!parsedTime) {
+      console.log("Time parsing failed");
       return res.status(400).json({
         message:
           "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '9 AM', etc.",
       });
     }
+    console.log(`Parsed time: ${parsedTime.format("HH:mm:ss")}`);
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
@@ -261,6 +271,7 @@ exports.setappointment = async (req, res) => {
       "YYYY-MM-DD"
     )}T${formattedTime}${timeZoneOffset}`;
 
+    // Log the final converted values
     console.log("Formatted Date-Time:", { selectedSlot, selectedTimezone });
 
     const appointmentData = {
