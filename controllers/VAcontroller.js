@@ -199,6 +199,26 @@ const parseTime = (time) => {
   return null; // Return null if none of the formats match
 };
 
+// Helper function to parse natural language date input
+const parseDate = (dateString) => {
+  const parsedDate = moment(
+    dateString,
+    [
+      "MMMM D, YYYY", // "October 7, 2024"
+      "MMMM Do, YYYY", // "October 7th, 2024"
+      "MMMM D, YYYY", // "October seventh, two thousand twenty-four"
+      "YYYY-MM-DD", // "2024-10-07"
+    ],
+    true
+  );
+
+  if (!parsedDate.isValid()) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
 exports.setappointment = async (req, res) => {
   try {
     const { date, time, fname, lname, email, phone, Fname } = req.body;
@@ -214,16 +234,12 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    let fullDate;
-
-    if (moment(date, "MMMM DD, YYYY", true).isValid()) {
-      fullDate = moment(date, "MMMM DD, YYYY");
-    } else if (moment(date, "YYYY-MM-DD", true).isValid()) {
-      fullDate = moment(date, "YYYY-MM-DD");
-    } else {
+    // Parse the natural language date
+    const fullDate = parseDate(date);
+    if (!fullDate) {
       return res.status(400).json({
         message:
-          "Invalid date format. Please use 'MMMM DD, YYYY' or 'YYYY-MM-DD'.",
+          "Invalid date format. Please use formats like 'MMMM D, YYYY' or 'YYYY-MM-DD'.",
       });
     }
 
@@ -233,7 +249,7 @@ exports.setappointment = async (req, res) => {
     if (!parsedTime) {
       return res.status(400).json({
         message:
-          "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '17:00', etc.",
+          "Invalid time format. Please use a valid time format like '10:00', '10:30 AM', '9 AM', etc.",
       });
     }
 
