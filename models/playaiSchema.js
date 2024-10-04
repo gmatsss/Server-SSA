@@ -32,6 +32,9 @@ const VAagentSchema = new Schema({
     required: true,
     default: "In Progress",
   },
+  PlayagentId: {
+    type: String,
+  },
   phoneNumber: {
     type: String,
     default: "+18704104327",
@@ -48,7 +51,6 @@ const VAagentSchema = new Schema({
   },
 });
 
-// Schema for plan/receipt of additional minutes
 const MinutesPlanSchema = new Schema({
   verificationCode: {
     type: String,
@@ -57,11 +59,20 @@ const MinutesPlanSchema = new Schema({
   minutesAdded: {
     type: Number,
     required: true,
-    default: 2500, // New minutes added when this record is created
+    default: 2500,
   },
   dateAdded: {
     type: Date,
     default: Date.now,
+  },
+  startDate: {
+    type: Date,
+    required: true, // Make it required if every plan must have a start date
+    default: Date.now, // Default to the current date
+  },
+  endDate: {
+    type: Date,
+    required: false, // Optional, in case you don't always need an end date
   },
 });
 
