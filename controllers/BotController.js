@@ -21,22 +21,13 @@ exports.createOnboarding = async (req, res, next) => {
     const { userId, numberOfAgents, additionalGuidelines } = req.body;
 
     let processedAgents = [];
-    const offerStartDate = new Date();
-    const offerValidityDays = 30;
-    const offerEndDate = new Date(
-      offerStartDate.getTime() + offerValidityDays * 24 * 60 * 60 * 1000
-    );
 
     if (typeof agents === "string") {
       agents = JSON.parse(agents);
 
-      // Add the offer details to each agent
+      // Remove the offer details
       const updatedAgents = agents.map((agent) => ({
         ...agent,
-        lifetimeAccess: false,
-        offerValidityDays,
-        offerStartDate,
-        offerEndDate,
       }));
 
       processedAgents.push({
@@ -326,117 +317,117 @@ exports.additionalbot = async (req, res, next) => {
   }
 };
 
-exports.updateLifetimeAccess = async (req, res, next) => {
-  try {
-    const userId = req.user._id;
-    const agentSubscriptions = req.body.agentSubscriptions;
+// exports.updateLifetimeAccess = async (req, res, next) => {
+//   try {
+//     const userId = req.user._id;
+//     const agentSubscriptions = req.body.agentSubscriptions;
 
-    // Check if agentSubscriptions is an array and has elements
-    if (!Array.isArray(agentSubscriptions) || agentSubscriptions.length === 0) {
-      return res.status(400).json({ message: "Invalid payload" });
-    }
+//     // Check if agentSubscriptions is an array and has elements
+//     if (!Array.isArray(agentSubscriptions) || agentSubscriptions.length === 0) {
+//       return res.status(400).json({ message: "Invalid payload" });
+//     }
 
-    // Process each agentSubscription
-    const updates = agentSubscriptions.map(({ agentId }) => {
-      return Onboarding.findOneAndUpdate(
-        { user: userId, "agents.agents._id": agentId },
-        {
-          $set: {
-            "agents.$[outer].agents.$[inner].lifetimeAccess": true,
-            "agents.$[outer].agents.$[inner].offerValidityDays": null,
-            "agents.$[outer].agents.$[inner].offerStartDate": null,
-            "agents.$[outer].agents.$[inner].offerEndDate": null,
-          },
-        },
-        {
-          new: true,
-          arrayFilters: [
-            { "outer.agents._id": agentId },
-            { "inner._id": agentId },
-          ],
-        }
-      );
-    });
+//     // Process each agentSubscription
+//     const updates = agentSubscriptions.map(({ agentId }) => {
+//       return Onboarding.findOneAndUpdate(
+//         { user: userId, "agents.agents._id": agentId },
+//         {
+//           $set: {
+//             "agents.$[outer].agents.$[inner].lifetimeAccess": true,
+//             "agents.$[outer].agents.$[inner].offerValidityDays": null,
+//             "agents.$[outer].agents.$[inner].offerStartDate": null,
+//             "agents.$[outer].agents.$[inner].offerEndDate": null,
+//           },
+//         },
+//         {
+//           new: true,
+//           arrayFilters: [
+//             { "outer.agents._id": agentId },
+//             { "inner._id": agentId },
+//           ],
+//         }
+//       );
+//     });
 
-    // Execute all update operations
-    const results = await Promise.all(updates);
+//     // Execute all update operations
+//     const results = await Promise.all(updates);
 
-    // Check if updates were successful
-    if (results.some((result) => result !== null)) {
-      // Fetch user details
-      const user = await User.findById(userId);
+//     // Check if updates were successful
+//     if (results.some((result) => result !== null)) {
+//       // Fetch user details
+//       const user = await User.findById(userId);
 
-      // Fetch parent bot details
-      const parentBot = await getParentBotDetails(
-        agentSubscriptions.map(({ agentId }) => agentId)
-      );
+//       // Fetch parent bot details
+//       const parentBot = await getParentBotDetails(
+//         agentSubscriptions.map(({ agentId }) => agentId)
+//       );
 
-      let newTodo;
+//       let newTodo;
 
-      if (parentBot && parentBot.verificationCodebotplan) {
-        // Create a new todo for cases where parent bot's verification code is available
-        newTodo = {
-          title:
-            "Disable recurring Plan for Lifetime Access - " + user.fullname,
-          description:
-            "This task involves disabling the plan for a user who has been granted Lifetime Access." +
-            "\n· Verify that Lifetime Access has been granted to the user. User Details: " +
-            user.fullname +
-            " (" +
-            user.email +
-            ")." +
-            "\n· Use MoonClerk to find the user's subscription. Search Criteria: User's name or email." +
-            "\n· Subscription Details: " +
-            agentSubscriptions
-              .map(
-                (sub) =>
-                  `Verification Code for Confirmation: ${parentBot.verificationCodebotplan} - Type: ${sub.subscriptionType}`
-              )
-              .join("; ") +
-            "\n· Once the subscription is located, suspend any ongoing charges. This prevents future billing." +
-            "\n· Ensure that the correct plan is suspended. Confirm that both verifications match and are correct.",
-          completed: false,
-        };
-      } else {
-        // Create a different new todo for cases where parent bot's verification code is not available
-        newTodo = {
-          title: "Lifetime Access for Bot",
-          description:
-            `${user.fullname} (${user.email}) has bought lifetime access for bots. Details: ` +
-            agentSubscriptions
-              .map(
-                (sub) =>
-                  `Bot ID: ${sub.agentId}, Subscription: ${sub.subscriptionType}`
-              )
-              .join("; ") +
-            ".",
-          completed: false,
-        };
-      }
+//       if (parentBot && parentBot.verificationCodebotplan) {
+//         // Create a new todo for cases where parent bot's verification code is available
+//         newTodo = {
+//           title:
+//             "Disable recurring Plan for Lifetime Access - " + user.fullname,
+//           description:
+//             "This task involves disabling the plan for a user who has been granted Lifetime Access." +
+//             "\n· Verify that Lifetime Access has been granted to the user. User Details: " +
+//             user.fullname +
+//             " (" +
+//             user.email +
+//             ")." +
+//             "\n· Use MoonClerk to find the user's subscription. Search Criteria: User's name or email." +
+//             "\n· Subscription Details: " +
+//             agentSubscriptions
+//               .map(
+//                 (sub) =>
+//                   `Verification Code for Confirmation: ${parentBot.verificationCodebotplan} - Type: ${sub.subscriptionType}`
+//               )
+//               .join("; ") +
+//             "\n· Once the subscription is located, suspend any ongoing charges. This prevents future billing." +
+//             "\n· Ensure that the correct plan is suspended. Confirm that both verifications match and are correct.",
+//           completed: false,
+//         };
+//       } else {
+//         // Create a different new todo for cases where parent bot's verification code is not available
+//         newTodo = {
+//           title: "Lifetime Access for Bot",
+//           description:
+//             `${user.fullname} (${user.email}) has bought lifetime access for bots. Details: ` +
+//             agentSubscriptions
+//               .map(
+//                 (sub) =>
+//                   `Bot ID: ${sub.agentId}, Subscription: ${sub.subscriptionType}`
+//               )
+//               .join("; ") +
+//             ".",
+//           completed: false,
+//         };
+//       }
 
-      const adminUsers = await postAnnouncementToAdmins(newTodo);
+//       const adminUsers = await postAnnouncementToAdmins(newTodo);
 
-      // Send email to each admin
-      for (const adminUser of adminUsers) {
-        sendAdminNotification(adminUser.email, newTodo).catch(console.error); // Log error but do not halt execution
-      }
+//       // Send email to each admin
+//       for (const adminUser of adminUsers) {
+//         sendAdminNotification(adminUser.email, newTodo).catch(console.error); // Log error but do not halt execution
+//       }
 
-      res.status(200).json({
-        success: true, // Add this line
-        message: "Lifetime access updated and admin notified successfully.",
-      });
-    } else {
-      return res
-        .status(404)
-        .json({ message: "No matching agents or onboarding records found" });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      err: "An error occurred while updating the agents' lifetime access.",
-    });
-  }
-};
+//       res.status(200).json({
+//         success: true, // Add this line
+//         message: "Lifetime access updated and admin notified successfully.",
+//       });
+//     } else {
+//       return res
+//         .status(404)
+//         .json({ message: "No matching agents or onboarding records found" });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       err: "An error occurred while updating the agents' lifetime access.",
+//     });
+//   }
+// };
 
 const postAnnouncementToAdmins = async (newTodo) => {
   try {

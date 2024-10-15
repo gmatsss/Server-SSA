@@ -6,7 +6,7 @@ const router = express.Router();
 const {
   createOnboarding,
   additionalbot,
-  updateLifetimeAccess,
+  // updateLifetimeAccess,
   getNumberOfBotsRegistered,
 } = require("../controllers/BotController");
 
@@ -19,7 +19,7 @@ const {
 } = require("../controllers/VAcontroller");
 
 router.post("/postinfo", createOnboarding);
-router.post("/updateLifetimeAccess", updateLifetimeAccess);
+// router.post("/updateLifetimeAccess", updateLifetimeAccess);
 router.post("/addbot", additionalbot);
 router.get("/getNumberOfBotsRegistered", getNumberOfBotsRegistered);
 

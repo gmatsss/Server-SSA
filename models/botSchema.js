@@ -11,18 +11,18 @@ const agentDetailsSchema = new mongoose.Schema({
     type: String,
     default: "In Progress",
   },
-  lifetimeAccess: {
-    type: Boolean,
-  },
-  offerValidityDays: {
-    type: Number,
-  },
-  offerStartDate: {
-    type: Date,
-  },
-  offerEndDate: {
-    type: Date,
-  },
+  // lifetimeAccess: {
+  //   type: Boolean,
+  // },
+  // offerValidityDays: {
+  //   type: Number,
+  // },
+  // offerStartDate: {
+  //   type: Date,
+  // },
+  // offerEndDate: {
+  //   type: Date,
+  // },
 });
 
 const agentSchema = new mongoose.Schema({

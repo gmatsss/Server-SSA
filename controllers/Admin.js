@@ -220,10 +220,6 @@ exports.get_bots = async (req, res) => {
 
     onboardingDetails.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
-        if (innerAgent.lifetimeAccess) {
-          return;
-        }
-
         const verificationCode = outerAgent.verificationCodebotplan;
 
         const matchedCustomer = findCustomerByVerificationCode(
@@ -747,10 +743,6 @@ async function updateBotStatus() {
     console.log(onboardings);
     onboarding.agents.forEach((outerAgent) => {
       outerAgent.agents.forEach((innerAgent) => {
-        if (innerAgent.lifetimeAccess) {
-          return;
-        }
-
         if (innerAgent.botStatus !== "In Progress") {
           const matchedCustomer = findCustomerByVerificationCode(
             moonClerkData,
