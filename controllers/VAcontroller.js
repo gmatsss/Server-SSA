@@ -184,9 +184,8 @@ const getOffsetForTimeZone = (zone) => {
   )}:${String(minutes).padStart(2, "0")}`;
 };
 
-// Helper function to parse the time in multiple formats
 const parseTime = (time) => {
-  const formats = ["HH:mm", "h:mm A", "H:mm", "hh:mm A"]; // Accepting 24-hour and 12-hour formats with AM/PM
+  const formats = ["HH:mm", "h:mm A", "H:mm", "hh:mm A"];
   let parsedTime = null;
 
   for (const format of formats) {
@@ -196,7 +195,7 @@ const parseTime = (time) => {
     }
   }
 
-  return null; // Return null if none of the formats match
+  return null;
 };
 
 exports.setappointment = async (req, res) => {
@@ -227,7 +226,6 @@ exports.setappointment = async (req, res) => {
       });
     }
 
-    // Parse the time using the helper function
     const parsedTime = parseTime(time);
 
     if (!parsedTime) {
@@ -239,7 +237,6 @@ exports.setappointment = async (req, res) => {
 
     const timeZoneOffset = getOffsetForTimeZone(selectedTimezone);
 
-    // Format time to 'HH:mm:ss'
     const formattedTime = parsedTime.format("HH:mm:ss");
     const selectedSlot = `${fullDate.format(
       "YYYY-MM-DD"

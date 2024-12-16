@@ -229,7 +229,8 @@ exports.get_bots = async (req, res) => {
 
         if (matchedCustomer && matchedCustomer.subscription) {
           if (innerAgent.botStatus !== "In Progress") {
-            innerAgent.botStatus = matchedCustomer.subscription.status;
+            // innerAgent.botStatus = matchedCustomer.subscription.status;
+            innerAgent.botStatus = "active";
             isModified = true;
           }
         }
